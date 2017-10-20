@@ -92,6 +92,8 @@ def getPublicIP():
     return "127.0.0.1"
 
 def initMetadata(filePath):
+    # TODO
+
     # read all this from filepath
     # DUMMY VALUES
     fileData.filename = "test.txt"
@@ -105,6 +107,8 @@ def initMetadata(filePath):
     return
 
 def chunk(filePath, chunkSize):
+    # TODO
+
     # chunkSize in bytes
     # Create file chunks
     # a1.txt -> out/a1.txt-0.part out/a1.txt-1.part
@@ -114,6 +118,8 @@ def getChecksum(filePath):
     return hashlib.md5(open(filePath, 'rb').read()).hexdigest()
 
 def generateMetaData(filePath, chunkSize):
+    # TODO
+
     chunk(filePath, chunkSize)
 
     # for i in range(0, numFiles):
@@ -122,10 +128,14 @@ def generateMetaData(filePath, chunkSize):
     return
 
 def reassemble(metadata):
+    # TODO
+
     # reassemble chunks into file
     return
 
 def checkAvail(filename, folderPath, checksums):
+    # TODO
+
     # looks in the folder for chunks
     # checks checksums
     # initialize chunkAvail
@@ -137,6 +147,8 @@ def getChunkPath(downloadFolder, fileName, chunkID):
     return os.getcwd() + "\\" + downloadFolder + "\\" + fileName + "-" + str(chunkID) + ".part"
 
 def loadChunk(downloadFolder, fileName, chunkID):
+    # TODO
+
     # loads file #chunkID from the file path
     # returns a byte string
 
@@ -225,6 +237,8 @@ def listenThread(IP, port):
 # Called by listenThread when a packet is received
 def handlePacket(conn, packet):
     if isHost and packet["opcode"] == Opcodes.PEER_UPDATE:
+        # TODO
+
         # Handle peer update
 
         # 2. HOST: Host receives PEER_UPDATE
