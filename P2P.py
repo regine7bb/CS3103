@@ -10,10 +10,6 @@ from enum import Enum
 # Const receive buffer size for socket
 RECV_BUFFER_SIZE = 1024
 
-class PeerState(Enum):
-    SEND_PEER_UPDATE = 0
-    SEND_PEER_REQUEST = 1
-
 class Opcodes(Enum):
     PEER_UPDATE = 0
     REQUEST_CHUNK = 1
@@ -37,9 +33,8 @@ peerList = [
     #   "chunkID" : <chunkID>
     #}
 ]
-chunkAvail = [True, True, False] # python bitarray
+chunkAvail = [False, False, False] # python bitarray
 isHost = False
-peerStatus = PeerState.SEND_PEER_UPDATE
 
 # IP stuff
 IP = "127.0.0.1"
@@ -175,12 +170,16 @@ def sendPacket(IP, port, packet):
 
 # Send Thread
 def sendThread():
-    global peerStatus
     global peerList
     while True:
-        if peerStatus == PeerState.SEND_PEER_UPDATE:
+        if len(peerList) == 0:
+
+            # Temporary code to stop the program from sending indefinitely
+            if chunkAvail[2]:
+                exit()
+
             # 1. PEER: Send Peer Update to Host
-            print("Status: Send peer update")
+            print("Peer list empty, send peer update to tracker")
             packet = pickle.dumps({
                 "opcode" : Opcodes.PEER_UPDATE,
                 "IP" : IP,
@@ -189,35 +188,29 @@ def sendThread():
             try:
                 response = sendPacket(fileData.trackerIP, trackerPort, packet)
                 peerList = response["peers"]
-                peerStatus = PeerState.SEND_PEER_REQUEST
             except:
                 print("Timeout on SEND_PEER_UPDATE")
-
-        elif peerStatus == PeerState.SEND_PEER_REQUEST:
-            print("Status: Send peer request")
+        else:
+            print("Send peer request")
             print("Peer list: " + str(peerList))
-            if len(peerList) == 0:
-                peerStatus = PeerState.SEND_PEER_UPDATE
-                exit() # EXIT FOR NOW
-            else:
-                # 7. Send peer request to first IP in peerList
 
-                # Remove very first peer
-                peer = peerList.pop(0)
+            # 7. Send peer request to first IP in peerList
 
-                packet = pickle.dumps({
-                    "opcode" : Opcodes.REQUEST_CHUNK,
-                    "chunkID" : peer["chunkID"]
-                })
+            # Remove very first peer
+            peer = peerList.pop(0)
 
-                print("Requesting chunk " + str(peer["chunkID"]) + " from " + peer["IP"])
+            packet = pickle.dumps({
+                "opcode" : Opcodes.REQUEST_CHUNK,
+                "chunkID" : peer["chunkID"]
+            })
 
-                response = sendPacket(peer["IP"], trackerPort, packet)
-                data = response["data"]
-                saveData(fileData.downloadFolder, fileData.filename, peer["chunkID"], data)
-                chunkAvail[peer["chunkID"]] = True
-                continue
-    return
+            print("Requesting chunk " + str(peer["chunkID"]) + " from " + peer["IP"])
+
+            response = sendPacket(peer["IP"], trackerPort, packet)
+            data = response["data"]
+            saveData(fileData.downloadFolder, fileData.filename, peer["chunkID"], data)
+            chunkAvail[peer["chunkID"]] = True
+
 
 # Listen Thread
 def listenThread(IP, port):
