@@ -162,11 +162,12 @@ def sendPacket(IP, port, packet):
     sendSocket.settimeout(5000)
     print("Sending to " + str(IP) + " " + str(port))
     sendSocket.connect((IP, port))
-    sendSocket.send(packet)
-    recvPacket = pickle.loads(sendSocket.recv(RECV_BUFFER_SIZE))
+    sendData = pickle.dumps(packet)
+    sendSocket.send(sendData)
+    recvData = pickle.loads(sendSocket.recv(RECV_BUFFER_SIZE))
     sendSocket.close()
-    print("Response: " + str(recvPacket))
-    return recvPacket
+    print("Response: " + str(recvData))
+    return recvData
 
 # Send Thread
 def sendThread():
@@ -180,11 +181,11 @@ def sendThread():
 
             # 1. PEER: Send Peer Update to Host
             print("Peer list empty, send peer update to tracker")
-            packet = pickle.dumps({
+            packet = {
                 "opcode" : Opcodes.PEER_UPDATE,
                 "IP" : IP,
                 "chunkAvail" : chunkAvail
-            })
+            }
             try:
                 response = sendPacket(fileData.trackerIP, trackerPort, packet)
                 peerList = response["peers"]
@@ -199,10 +200,10 @@ def sendThread():
             # Remove very first peer
             peer = peerList.pop(0)
 
-            packet = pickle.dumps({
+            packet = {
                 "opcode" : Opcodes.REQUEST_CHUNK,
                 "chunkID" : peer["chunkID"]
-            })
+            }
 
             print("Requesting chunk " + str(peer["chunkID"]) + " from " + peer["IP"])
 
