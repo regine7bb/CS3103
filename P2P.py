@@ -2,6 +2,7 @@ import hashlib
 import os
 import sys
 import pickle
+import random
 import time
 import socket
 from threading import Thread
@@ -232,8 +233,6 @@ def listenThread(IP, port):
 # Called by listenThread when a packet is received
 def handlePacket(conn, packet):
     if isHost and packet["opcode"] == Opcodes.PEER_UPDATE:
-        # TODO
-
         # Handle peer update
         # 2. HOST: Host receives PEER_UPDATE
         # 3. HOST: Update peer info database
@@ -242,9 +241,12 @@ def handlePacket(conn, packet):
 
         # 4. HOST: Look for chunks for peer
         peers = []
+        peerInfoList = peerInfo.items()
+        # to randomized the peer being pointed to
+        random.shuffle(peerInfoList)
         for i in range(0, len(packet["chunkAvail"])):
             if not packet["chunkAvail"][i]:
-                for ip, chunks in peerInfo.items():
+                for ip, chunks in peerInfoList:
                     if chunks[i]:
                         hasChunk = {"IP" : ip, "chunkID" : i}
                         peers.append(hasChunk)
