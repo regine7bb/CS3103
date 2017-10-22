@@ -248,6 +248,7 @@ def handlePacket(conn, packet):
                     if chunks[i]:
                         hasChunk = {"IP" : ip, "chunkID" : i}
                         peers.append(hasChunk)
+                        break;
 
         trackerResponse = { "peers" : peers };
         # 5. HOST: Send Tracker response
@@ -284,7 +285,7 @@ if len(sys.argv) < 2:
 command = sys.argv[1]
 
 if command == "init" and len(sys.argv) >= 5:
-    exit() # change this
+    exit() # TODO change this
 elif command == "host" and len(sys.argv) >= 4:
     initMetadata(sys.argv[2])
     fileData.downloadFolder = sys.argv[3]
@@ -299,6 +300,9 @@ else:
 
 checkAvail(fileData.filename, fileData.downloadFolder, fileData.checkSums)
 IP = getPublicIP()
+# host inserts itself into peer list
+if isHost:
+    peerInfo[IP] = chunkAvail
 
 print("File name " + fileData.filename)
 
