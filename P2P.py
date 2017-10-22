@@ -26,6 +26,7 @@ fileData = FileData()
 
 peerInfo = {
     # peer IP : chunkAvail
+    # including host itself
 }
 peerList = [
     #{
@@ -234,32 +235,22 @@ def handlePacket(conn, packet):
         # TODO
 
         # Handle peer update
-
         # 2. HOST: Host receives PEER_UPDATE
         # 3. HOST: Update peer info database
-        # 4. HOST: Look for chunks for peer
-        # 5. HOST: Send Tracker response
-
+        peerInfo[conn.getpeername()[0]] = packet["chunkAvail"]
         print("Received peer update request from " + conn.getpeername()[0])
 
-        # DUMMY VALUE
-        trackerResponse = {
-            "peers" : [
-                {
-                    "IP": "127.0.0.1",
-                    "chunkID": 0
-                },
-                {
-                    "IP": "127.0.0.1",
-                    "chunkID": 1
-                },
-                {
-                    "IP": "127.0.0.1",
-                    "chunkID": 2
-                }
-            ]
-        }
+        # 4. HOST: Look for chunks for peer
+        peers = []
+        for i in range(0, len(packet["chunkAvail"])):
+            if not packet["chunkAvail"][i]:
+                for ip, chunks in peerInfo.items():
+                    if chunks[i]:
+                        hasChunk = {"IP" : ip, "chunkID" : i}
+                        peers.append(hasChunk)
 
+        trackerResponse = { "peers" : peers };
+        # 5. HOST: Send Tracker response
         packet = pickle.dumps(trackerResponse)
         conn.send(packet)
         return
