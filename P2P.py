@@ -302,14 +302,12 @@ else:
 
 checkAvail(fileData.filename, fileData.downloadFolder, fileData.checkSums)
 IP = getPublicIP()
-# host inserts itself into peer list
-if isHost:
-    peerInfo[IP] = chunkAvail
 
 print("File name " + fileData.filename)
 
 if not isHost:
     Thread(target=sendThread, args=()).start()
 else:
+    peerInfo[IP] = chunkAvail # host inserts itself into peer list
     listenPort = trackerPort
 Thread(target=listenThread, args=(IP, listenPort)).start()
