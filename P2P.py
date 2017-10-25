@@ -92,7 +92,6 @@ def getPublicIP():
 
 
 def initMetadata(filePath):
-    # TODO REGINE
     # read all this from filepath
     in_file = open(filePath, "r")  # opening for [r]eading
     data = in_file.read()  # read and store as string
@@ -103,14 +102,15 @@ def initMetadata(filePath):
     fileData.checkSums = checkSums.split(",")  # split by ","
     return
 
+def getChecksum(filePath):
+    return hashlib.md5(open(filePath, 'rb').read()).hexdigest()
 
-def chunk(folderPath,filePath, chunkSize):
-    # TODO REGINE
+def chunk(folderPath, filePath, chunkSize):
     # chunkSize in bytes
     in_file = open(filePath, "r")  # opening for [r]eading
-    i = 1
+    i = 0
     owd = os.getcwd()
-    if os.path.exists(folderPath) is False:
+    if not os.path.exists(folderPath):
         os.mkdir(folderPath)
     os.chdir(folderPath)
     for data in iter(lambda: in_file.read(chunkSize), ""):    # Create file chunks
@@ -123,86 +123,68 @@ def chunk(folderPath,filePath, chunkSize):
     return
 
 
-def getChecksum(filePath):
-    return hashlib.md5(open(filePath, 'rb').read()).hexdigest()
-
-
-def generateMetaData(folderPath,filePath,user_chunksize):
-    # TODO REGINE
+def generateMetaData(folderPath, filePath, chunkSize):
     filesize = os.path.getsize(filePath)
-    numChunks = math.ceil(filesize * 1.0 / user_chunksize)
-    chunk(folderPath, filePath, user_chunksize)
+    numChunks = int(math.ceil(filesize * 1.0 / chunkSize))
+    chunk(folderPath, filePath, chunkSize)
 
     # Write to file matadata
     out_file = open(filePath + ".metadata", "w")  # open for [w]riting
     out_file.write(filePath + " ")
     out_file.write(str(numChunks) + " ")
-    out_file.write(str(user_chunksize) + " ")
-    for i in range(1, numChunks+1):
+    out_file.write(str(chunkSize) + " ")
+    for i in range(0, numChunks):
         if i < numChunks:
             out_file.write(getChecksum(getChunkPath(folderPath, filePath, i)) + ",")
         else:
             out_file.write(getChecksum(getChunkPath(folderPath, filePath, i)))
     out_file.close()
-    return
 
-
-def reassemble(metadata):
-    # TODO REGINE
+def tryReassemble():
     # reassemble chunks into file
-    initMetadata(metadata)
-    data = fileData.checkSums
-    dataStr = "".join(data)
-    return dataStr
+    for hasChunk in checkAvail():
+        if not hasChunk:
+            return False
 
+    out_file = open(fileData.downloadFolder + "/" + fileData.filename, "w")
+    for i in range(0, fileData.numChunks):
+        in_file = open(getChunkPath(fileData.downloadFolder, fileData.filename, i), "r")
+        out_file.write(in_file.read())
+        in_file.close()
+    out_file.close()
 
-def checkAvail(filename, folderPath, checksums, user_chunksize):
-    # TODO REGINE
+    return True
+
+def checkAvail():
     # looks in the folder for chunks
     # filename = test.txt
     # folderPath = out
     # checksums = ["ansnns", "jsak111", "3jjwn"]
-    generateMetaData(filename, folderPath, user_chunksize)
-    initMetadata(filename + ".metadata")
 
     checkAvailArr = []
-    for i in range(0, len(fileData.checkSums)):
-        for j in range(0, len(checksums)):
-            if fileData.checkSums[i] is checksums[j]:
-                checkAvailArr[i] = True
-                break
-        checkAvailArr[i] = False
-
+    for i in range(0, fileData.numChunks):
+        chunkPath = getChunkPath(fileData.downloadFolder, fileData.filename, i)
+        if not os.path.exists(chunkPath):
+            checkAvailArr.append(False)
+        else:
+            checkAvailArr.append(fileData.checkSums[i] == getChecksum(chunkPath))
     return checkAvailArr
-    # checks checksums
-    # initialize chunkAvail
-
-    chunkAvail = [False, False, False] #...
-
 
 # Returns a file path given the download folder, the file name, and the chunk ID.
 def getChunkPath(downloadFolder, fileName, chunkID):
     return os.getcwd() + "/" + downloadFolder + "/" + fileName + "-" + str(chunkID) + ".part"
 
-
-def loadChunk(downloadFolder, fileName, chunkID):
-    # TODO REGINE
-
-    filepath = getChunkPath(downloadFolder,fileName, chunkID) # loads file #chunkID from the file path
+def loadChunk(chunkID):
+    filepath = getChunkPath(fileData.downloadFolder, fileData.filename, chunkID) # loads file #chunkID from the file path
     in_file = open(filepath, "r")  # opening for [r]eading
     data = in_file.read()  # if you only wanted to read 512 bytes, do .read(512)  # returns a byte string
     in_file.close()
     return data
 
-    #print("Loading chunk " + str(chunkID))
-    #return bytearray([49, 49, 49, 49, 49, 49, 49, 49, 49, 49])
-
-
-def saveData(downloadFolder, fileName, chunkID, data):
-    print("Saving data to " + getChunkPath(downloadFolder, fileName, chunkID))
-    with open(getChunkPath(downloadFolder, fileName, chunkID), 'wb') as output:
-        output.write(bytearray(data))
-
+def saveData(chunkID, data):
+    print("Saving data to " + getChunkPath(fileData.downloadFolder, fileData.filename, chunkID))
+    with open(getChunkPath(fileData.downloadFolder, fileData.filename, chunkID), 'w') as output:
+        output.write(data)
 
 # Sends an arbitrary packet to IP/port and receives a response
 def sendPacket(IP, port, packet):
@@ -217,15 +199,17 @@ def sendPacket(IP, port, packet):
     print("Response: " + str(recvData))
     return recvData
 
-
 # Send Thread
 def sendThread():
     global peerList
+    global chunkAvail
     while True:
         if len(peerList) == 0:
 
             # Temporary code to stop the program from sending indefinitely
-            if chunkAvail[2]:
+            chunkAvail = checkAvail()
+            if tryReassemble():
+                print("Reassembly successful.")
                 exit()
 
             # 1. PEER: Send Peer Update to Host
@@ -256,9 +240,12 @@ def sendThread():
 
             print("Requesting chunk " + str(peer["chunkID"]) + " from " + peer["IP"])
 
+            if peer["IP"] == "tracker":
+                peer["IP"] = fileData.trackerIP
+
             response = sendPacket(peer["IP"], trackerPort, packet)
             data = response["data"]
-            saveData(fileData.downloadFolder, fileData.filename, peer["chunkID"], data)
+            saveData(peer["chunkID"], data)
             chunkAvail[peer["chunkID"]] = True
 
 
@@ -275,7 +262,6 @@ def listenThread(IP, port):
         packet = pickle.loads(conn.recv(RECV_BUFFER_SIZE))
         print("Receive packet: " + str(packet))
         handlePacket(conn, packet)
-    return
 
 
 # Called by listenThread when a packet is received
@@ -289,17 +275,16 @@ def handlePacket(conn, packet):
 
         # 4. HOST: Look for chunks for peer
         peers = []
-        peerInfoList = peerInfo.items()
-        # to randomized the peer being pointed to
-        random.shuffle(peerInfoList)
+
         for i in range(0, len(packet["chunkAvail"])):
             if not packet["chunkAvail"][i]:
-                for ip, chunks in peerInfoList:
+                for ip, chunks in peerInfo.items():
                     if chunks[i]:
                         hasChunk = {"IP": ip, "chunkID": i}
                         peers.append(hasChunk)
                         break;
 
+        print(peers)
         trackerResponse = { "peers" : peers };
         # 5. HOST: Send Tracker response
         packet = pickle.dumps(trackerResponse)
@@ -315,7 +300,7 @@ def handlePacket(conn, packet):
         print("Received request for chunk " + str(chunkID) + " from " + conn.getpeername()[0])
 
         dataResponse = {
-            "data": loadChunk(fileData.downloadFolder, fileData.filename, chunkID)
+            "data": loadChunk(chunkID)
         }
 
         packet = pickle.dumps(dataResponse)
@@ -325,7 +310,7 @@ def handlePacket(conn, packet):
 
 def printUsageAndExit():
     print("Usage:")
-    print("Generate metadata: ./p2p init <file> <chunk_size> <target metadata_file>")
+    print("Generate metadata: ./p2p init <folder_path> <file> <chunk_size>")
     print("Host: ./p2p host <metadata_file> <download_folder>")
     print("Peer: ./p2p peer <metadata_file> <download_folder> <tracker_IP>")
     exit()
@@ -336,8 +321,8 @@ if len(sys.argv) < 2:
 command = sys.argv[1]
 
 if command == "init" and len(sys.argv) >= 5:
-    generateMetaData("out", sys.argv[2], int(sys.argv[3]))
-    exit() # TODO change this
+    generateMetaData(sys.argv[2], sys.argv[3], int(sys.argv[4]))
+    exit()
 elif command == "host" and len(sys.argv) >= 4:
     initMetadata(sys.argv[2])
     fileData.downloadFolder = sys.argv[3]
@@ -350,7 +335,8 @@ elif command == "peer" and len(sys.argv) >= 5:
 else:
     printUsageAndExit()
 
-checkAvail(fileData.filename, fileData.downloadFolder, fileData.checkSums)
+chunkAvail = checkAvail()
+print("Chunk avail: " + str(chunkAvail))
 IP = getPublicIP()
 
 print("File name " + fileData.filename)
@@ -358,6 +344,6 @@ print("File name " + fileData.filename)
 if not isHost:
     Thread(target=sendThread, args=()).start()
 else:
-    peerInfo[IP] = chunkAvail # host inserts itself into peer list
+    peerInfo["tracker"] = chunkAvail # host inserts itself into peer list
     listenPort = trackerPort
 Thread(target=listenThread, args=(IP, listenPort)).start()

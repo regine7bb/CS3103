@@ -1,1 +1,2 @@
-python3 P2P.py init test.txt 10 asd
+python P2P.py init hostfolder test.txt 10
+pause
