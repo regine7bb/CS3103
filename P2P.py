@@ -150,14 +150,30 @@ def generateMetaData(folderPath,filePath,user_chunksize):
 def reassemble(metadata):
     # TODO REGINE
     # reassemble chunks into file
-    
-    return
+    initMetadata(metadata)
+    data = fileData.checkSums
+    dataStr = "".join(data)
+    return dataStr
 
 
-def checkAvail(filename, folderPath, checksums):
+def checkAvail(filename, folderPath, checksums, user_chunksize):
     # TODO REGINE
     # looks in the folder for chunks
+    # filename = test.txt
+    # folderPath = out
+    # checksums = ["ansnns", "jsak111", "3jjwn"]
+    generateMetaData(filename, folderPath, user_chunksize)
+    initMetadata(filename + ".metadata")
 
+    checkAvailArr = []
+    for i in range(0, len(fileData.checkSums)):
+        for j in range(0, len(checksums)):
+            if fileData.checkSums[i] is checksums[j]:
+                checkAvailArr[i] = True
+                break
+        checkAvailArr[i] = False
+
+    return checkAvailArr
     # checks checksums
     # initialize chunkAvail
 
