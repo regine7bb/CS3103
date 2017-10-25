@@ -9,15 +9,15 @@ import socket
 from threading import Thread
 from enum import Enum
 
-# Const receive buffer size for socket
-RECV_BUFFER_SIZE = 1024
+RECV_BUFFER_SIZE = 1024  # Const receive buffer size for socket
+
 
 class Opcodes(Enum):
     PEER_UPDATE = 0
     REQUEST_CHUNK = 1
 
-# Stores file metadata
-class FileData:
+
+class FileData:  # Stores file metadata
     filename = ""
     numChunks = 0
     chunkSize = 1
@@ -86,24 +86,23 @@ Sample:
 }
 '''
 
+
 def getPublicIP():
     return "127.0.0.1"
 
+
 def initMetadata(filePath):
     # TODO REGINE
-
-
     # read all this from filepath
-    # DUMMY VALUES
-    fileData.filename = "test.txt"
-    fileData.numChunks = 3
-    fileData.chunkSize = 10
-    fileData.checkSums = [
-        "e11170b8cbd2d74102651cb967fa28e5",
-        "3a08fe7b8c4da6ed09f21c3ef97efce2",
-        "4aee3e28df37ea1af64bd636eca59dcb",
-    ]
+    in_file = open(filePath, "r")  # opening for [r]eading
+    data = in_file.read()  # read and store as string
+    in_file.close()  # closing file
+    fileData.filename, numChunks, chunkSize, checkSums = data.split()  # split by " "
+    fileData.numChunks = int(numChunks)
+    fileData.chunkSize = int(chunkSize)
+    fileData.checkSums = checkSums.split(",")  # split by ","
     return
+
 
 def chunk(folderPath,filePath, chunkSize):
     # TODO REGINE
@@ -121,67 +120,73 @@ def chunk(folderPath,filePath, chunkSize):
         i += 1
     os.chdir(owd)
     in_file.close()
-
-
     return
+
 
 def getChecksum(filePath):
     return hashlib.md5(open(filePath, 'rb').read()).hexdigest()
 
+
 def generateMetaData(folderPath,filePath,user_chunksize):
     # TODO REGINE
-
     filesize = os.path.getsize(filePath)
     numChunks = math.ceil(filesize * 1.0 / user_chunksize)
     chunk(folderPath, filePath, user_chunksize)
 
     # Write to file matadata
     out_file = open(filePath + ".metadata", "w")  # open for [w]riting
-    out_file.write(filePath)
-    out_file.write(str(numChunks))
-    out_file.write(str(user_chunksize))
-    for i in range(1, numChunks):
-        out_file.write(getChecksum(getChunkPath(folderPath, filePath, i)))
+    out_file.write(filePath + " ")
+    out_file.write(str(numChunks) + " ")
+    out_file.write(str(user_chunksize) + " ")
+    for i in range(1, numChunks+1):
+        if i < numChunks:
+            out_file.write(getChecksum(getChunkPath(folderPath, filePath, i)) + ",")
+        else:
+            out_file.write(getChecksum(getChunkPath(folderPath, filePath, i)))
     out_file.close()
     return
 
+
 def reassemble(metadata):
     # TODO REGINE
-
     # reassemble chunks into file
+    
     return
+
 
 def checkAvail(filename, folderPath, checksums):
     # TODO REGINE
-
     # looks in the folder for chunks
+
     # checks checksums
     # initialize chunkAvail
 
     chunkAvail = [False, False, False] #...
 
+
 # Returns a file path given the download folder, the file name, and the chunk ID.
 def getChunkPath(downloadFolder, fileName, chunkID):
     return os.getcwd() + "/" + downloadFolder + "/" + fileName + "-" + str(chunkID) + ".part"
 
+
 def loadChunk(downloadFolder, fileName, chunkID):
     # TODO REGINE
 
-    # loads file #chunkID from the file path
-    # returns a byte string
-    filepath = getChunkPath(downloadFolder,fileName, chunkID)
+    filepath = getChunkPath(downloadFolder,fileName, chunkID) # loads file #chunkID from the file path
     in_file = open(filepath, "r")  # opening for [r]eading
-    data = in_file.read()  # if you only wanted to read 512 bytes, do .read(512)
+    data = in_file.read()  # if you only wanted to read 512 bytes, do .read(512)  # returns a byte string
     in_file.close()
     return data
 
     #print("Loading chunk " + str(chunkID))
     #return bytearray([49, 49, 49, 49, 49, 49, 49, 49, 49, 49])
 
+
 def saveData(downloadFolder, fileName, chunkID, data):
     print("Saving data to " + getChunkPath(downloadFolder, fileName, chunkID))
     with open(getChunkPath(downloadFolder, fileName, chunkID), 'wb') as output:
         output.write(bytearray(data))
+
 
 # Sends an arbitrary packet to IP/port and receives a response
 def sendPacket(IP, port, packet):
@@ -196,6 +201,7 @@ def sendPacket(IP, port, packet):
     print("Response: " + str(recvData))
     return recvData
 
+
 # Send Thread
 def sendThread():
     global peerList
@@ -209,9 +215,9 @@ def sendThread():
             # 1. PEER: Send Peer Update to Host
             print("Peer list empty, send peer update to tracker")
             packet = {
-                "opcode" : Opcodes.PEER_UPDATE,
-                "IP" : IP,
-                "chunkAvail" : chunkAvail
+                "opcode": Opcodes.PEER_UPDATE,
+                "IP": IP,
+                "chunkAvail": chunkAvail
             }
             try:
                 response = sendPacket(fileData.trackerIP, trackerPort, packet)
@@ -255,6 +261,7 @@ def listenThread(IP, port):
         handlePacket(conn, packet)
     return
 
+
 # Called by listenThread when a packet is received
 def handlePacket(conn, packet):
     if isHost and packet["opcode"] == Opcodes.PEER_UPDATE:
@@ -273,7 +280,7 @@ def handlePacket(conn, packet):
             if not packet["chunkAvail"][i]:
                 for ip, chunks in peerInfoList:
                     if chunks[i]:
-                        hasChunk = {"IP" : ip, "chunkID" : i}
+                        hasChunk = {"IP": ip, "chunkID": i}
                         peers.append(hasChunk)
                         break;
 
@@ -292,12 +299,13 @@ def handlePacket(conn, packet):
         print("Received request for chunk " + str(chunkID) + " from " + conn.getpeername()[0])
 
         dataResponse = {
-            "data" : loadChunk(fileData.downloadFolder, fileData.filename, chunkID)
+            "data": loadChunk(fileData.downloadFolder, fileData.filename, chunkID)
         }
 
         packet = pickle.dumps(dataResponse)
         conn.send(packet)
         return
+
 
 def printUsageAndExit():
     print("Usage:")
