@@ -1,13 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="270d581e-900d-47a4-be73-8e0ae23b866c" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/start init.bat" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/P2P.py" afterPath="$PROJECT_DIR$/P2P.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/start host.bat" afterPath="$PROJECT_DIR$/start host.bat" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/start peer.bat" afterPath="$PROJECT_DIR$/start peer.bat" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/test.txt.metadata" afterPath="$PROJECT_DIR$/test.txt.metadata" />
-    </list>
+    <list default="true" id="270d581e-900d-47a4-be73-8e0ae23b866c" name="Default" comment="" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -89,7 +83,8 @@
     </option>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="y" value="23" />
+    <option name="x" value="1" />
+    <option name="y" value="264" />
     <option name="width" value="1280" />
     <option name="height" value="773" />
   </component>
@@ -308,7 +303,7 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="0" y="23" width="1280" height="773" extended-state="0" />
+    <frame x="1" y="264" width="1280" height="773" extended-state="0" />
     <editor active="true" />
     <layout>
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.18427323" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
