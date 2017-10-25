@@ -3,6 +3,7 @@ import os
 import sys
 import pickle
 import random
+import math
 import time
 import socket
 from threading import Thread
@@ -89,7 +90,8 @@ def getPublicIP():
     return "127.0.0.1"
 
 def initMetadata(filePath):
-    # TODO
+    # TODO REGINE
+
 
     # read all this from filepath
     # DUMMY VALUES
@@ -103,35 +105,54 @@ def initMetadata(filePath):
     ]
     return
 
-def chunk(filePath, chunkSize):
-    # TODO
-
+def chunk(folderPath,filePath, chunkSize):
+    # TODO REGINE
     # chunkSize in bytes
-    # Create file chunks
-    # a1.txt -> out/a1.txt-0.part out/a1.txt-1.part
+    in_file = open(filePath, "r")  # opening for [r]eading
+    i = 1
+    owd = os.getcwd()
+    if os.path.exists(folderPath) is False:
+        os.mkdir(folderPath)
+    os.chdir(folderPath)
+    for data in iter(lambda: in_file.read(chunkSize), ""):    # Create file chunks
+        out_file = open(filePath + "-" + str(i) + ".part", "w")  # a1.txt -> out/a1.txt-0.part out/a1.txt-1.part
+        out_file.write(data)
+        out_file.close()
+        i += 1
+    os.chdir(owd)
+    in_file.close()
+
+
     return
 
 def getChecksum(filePath):
     return hashlib.md5(open(filePath, 'rb').read()).hexdigest()
 
-def generateMetaData(filePath, chunkSize):
-    # TODO
+def generateMetaData(folderPath,filePath,user_chunksize):
+    # TODO REGINE
 
-    chunk(filePath, chunkSize)
+    filesize = os.path.getsize(filePath)
+    numChunks = math.ceil(filesize * 1.0 / user_chunksize)
+    chunk(folderPath, filePath, user_chunksize)
 
-    # for i in range(0, numFiles):
-    #    getChecksum()
-    # generate file
+    # Write to file matadata
+    out_file = open(filePath + ".metadata", "w")  # open for [w]riting
+    out_file.write(filePath)
+    out_file.write(str(numChunks))
+    out_file.write(str(user_chunksize))
+    for i in range(1, numChunks):
+        out_file.write(getChecksum(getChunkPath(folderPath, filePath, i)))
+    out_file.close()
     return
 
 def reassemble(metadata):
-    # TODO
+    # TODO REGINE
 
     # reassemble chunks into file
     return
 
 def checkAvail(filename, folderPath, checksums):
-    # TODO
+    # TODO REGINE
 
     # looks in the folder for chunks
     # checks checksums
@@ -141,17 +162,21 @@ def checkAvail(filename, folderPath, checksums):
 
 # Returns a file path given the download folder, the file name, and the chunk ID.
 def getChunkPath(downloadFolder, fileName, chunkID):
-    return os.getcwd() + "\\" + downloadFolder + "\\" + fileName + "-" + str(chunkID) + ".part"
+    return os.getcwd() + "/" + downloadFolder + "/" + fileName + "-" + str(chunkID) + ".part"
 
 def loadChunk(downloadFolder, fileName, chunkID):
-    # TODO
+    # TODO REGINE
 
     # loads file #chunkID from the file path
     # returns a byte string
+    filepath = getChunkPath(downloadFolder,fileName, chunkID)
+    in_file = open(filepath, "r")  # opening for [r]eading
+    data = in_file.read()  # if you only wanted to read 512 bytes, do .read(512)
+    in_file.close()
+    return data
 
-    # DUMMY VALUES
-    print("Loading chunk " + str(chunkID))
-    return bytearray([49, 49, 49, 49, 49, 49, 49, 49, 49, 49])
+    #print("Loading chunk " + str(chunkID))
+    #return bytearray([49, 49, 49, 49, 49, 49, 49, 49, 49, 49])
 
 def saveData(downloadFolder, fileName, chunkID, data):
     print("Saving data to " + getChunkPath(downloadFolder, fileName, chunkID))
@@ -287,6 +312,7 @@ if len(sys.argv) < 2:
 command = sys.argv[1]
 
 if command == "init" and len(sys.argv) >= 5:
+    generateMetaData("out", sys.argv[2], int(sys.argv[3]))
     exit() # TODO change this
 elif command == "host" and len(sys.argv) >= 4:
     initMetadata(sys.argv[2])

@@ -1,0 +1,1 @@
+python3 P2P.py init test.txt 10 asd
