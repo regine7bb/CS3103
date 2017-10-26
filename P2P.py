@@ -102,8 +102,10 @@ def initMetadata(filePath):
     fileData.checkSums = checkSums.split(",")  # split by ","
     return
 
+
 def getChecksum(filePath):
     return hashlib.md5(open(filePath, 'rb').read()).hexdigest()
+
 
 def chunk(folderPath, filePath, chunkSize):
     # chunkSize in bytes
@@ -140,6 +142,7 @@ def generateMetaData(folderPath, filePath, chunkSize):
             out_file.write(getChecksum(getChunkPath(folderPath, filePath, i)))
     out_file.close()
 
+
 def tryReassemble():
     # reassemble chunks into file
     for hasChunk in checkAvail():
@@ -154,6 +157,7 @@ def tryReassemble():
     out_file.close()
 
     return True
+
 
 def checkAvail():
     # looks in the folder for chunks
@@ -170,9 +174,11 @@ def checkAvail():
             checkAvailArr.append(fileData.checkSums[i] == getChecksum(chunkPath))
     return checkAvailArr
 
+
 # Returns a file path given the download folder, the file name, and the chunk ID.
 def getChunkPath(downloadFolder, fileName, chunkID):
     return os.getcwd() + "/" + downloadFolder + "/" + fileName + "-" + str(chunkID) + ".part"
+
 
 def loadChunk(chunkID):
     filepath = getChunkPath(fileData.downloadFolder, fileData.filename, chunkID) # loads file #chunkID from the file path
@@ -181,10 +187,12 @@ def loadChunk(chunkID):
     in_file.close()
     return data
 
+
 def saveData(chunkID, data):
     print("Saving data to " + getChunkPath(fileData.downloadFolder, fileData.filename, chunkID))
     with open(getChunkPath(fileData.downloadFolder, fileData.filename, chunkID), 'w') as output:
         output.write(data)
+
 
 # Sends an arbitrary packet to IP/port and receives a response
 def sendPacket(IP, port, packet):
@@ -198,6 +206,7 @@ def sendPacket(IP, port, packet):
     sendSocket.close()
     print("Response: " + str(recvData))
     return recvData
+
 
 # Send Thread
 def sendThread():
