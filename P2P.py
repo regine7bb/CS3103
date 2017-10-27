@@ -190,6 +190,8 @@ def loadChunk(chunkID):
 
 def saveData(chunkID, data):
     print("Saving data to " + getChunkPath(fileData.downloadFolder, fileData.filename, chunkID))
+    if not os.path.exists(fileData.downloadFolder):
+        os.mkdir(fileData.downloadFolder)
     with open(getChunkPath(fileData.downloadFolder, fileData.filename, chunkID), 'w') as output:
         output.write(data)
 
