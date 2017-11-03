@@ -11,6 +11,7 @@ import re
 import glob
 from threading import Thread
 from enum import Enum
+from os import walk
 
 RECV_BUFFER_SIZE = 1024  # Const receive buffer size for socket
 
@@ -18,6 +19,7 @@ RECV_BUFFER_SIZE = 1024  # Const receive buffer size for socket
 class Opcodes(Enum):
     PEER_UPDATE = 0
     REQUEST_CHUNK = 1
+    FILE_LIST = 2
 
 metadataFolder = ""
 downloadFolder = ""
@@ -47,6 +49,7 @@ trackerIP = "127.0.0.1"
 listenPort = 5000
 trackerPort = 5001
 
+
 def getPublicIP():
     return "127.0.0.1"
     '''
@@ -55,6 +58,7 @@ def getPublicIP():
     print(m[0])
     return m[0]
     '''
+
 
 def initMetadata(filePath):
     # read all this from filepath
@@ -295,6 +299,12 @@ def handlePacket(conn, packet):
 
         packet = pickle.dumps(dataResponse)
         conn.send(packet)
+    elif packet["opcode"] == Opcodes.FILE_LIST:
+        dataResponse = {
+            "filelist": fileList()
+        }
+        packet = pickle.dumps(dataResponse)
+        conn.send(packet)
         return
 
 
@@ -345,6 +355,13 @@ else:
     peerInfo["tracker"] = chunkAvail # host inserts itself into peer list
     Thread(target=listenThread, args=(IP, trackerPort)).start()
 
+def fileList():
+    f = []
+    for (dirpath, dirnames, filenames) in walk (metadataFolder):
+        f.extend(filenames)
+        break
+    return f
+
 def printCommands():
     print("Commands available: ")
     print("1. Initialise Chunk size: [init <file> <chunk size>]")
@@ -363,7 +380,14 @@ while(1):
         generateMetaData(downloadFolder, filePath, chunkSize)
         pass
     elif cmd[0] == "files":
-        pass
+        packet = {
+            "opcode": Opcodes.FILE_LIST
+        }
+        response = sendPacket(trackerIP, trackerPort, packet)
+
+        for file in response["filelist"]:
+            print(file)
+
     elif cmd[0] == "query":
         pass
     elif cmd[0] == "download":
@@ -371,4 +395,4 @@ while(1):
     elif cmd[0] == "post":
         pass
     else:
-        commands()
+        printCommands()
