@@ -6,6 +6,7 @@ import random
 import math
 import time
 import socket
+import requests
 from threading import Thread
 from enum import Enum
 
@@ -88,7 +89,10 @@ Sample:
 
 
 def getPublicIP():
-    return "127.0.0.1"
+    response = requests.get('http://checkip.dyndns.org/')
+    m = re.findall('[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}', str(response.content))
+    print(m[0])
+    return m[0]
 
 
 def initMetadata(filePath):
