@@ -26,7 +26,7 @@ class FileData:  # Stores file metadata
     checkSums = []
     trackerIP = ""
     downloadFolder = ""
-fileData = FileData()
+fileData = {}
 
 peerInfo = {
     # peer IP : chunkAvail
@@ -44,7 +44,6 @@ isHost = False
 # IP stuff
 IP = "127.0.0.1"
 listenPort = 5000
-trackerPort = 5001
 
 # PEER_UPDATE
 '''
@@ -236,7 +235,7 @@ def sendThread():
                 "chunkAvail": chunkAvail
             }
             try:
-                response = sendPacket(fileData.trackerIP, trackerPort, packet)
+                response = sendPacket(fileData.trackerIP, listenPort, packet)
                 peerList = response["peers"]
             except:
                 print("Timeout on SEND_PEER_UPDATE")
@@ -259,7 +258,7 @@ def sendThread():
             if peer["IP"] == "tracker":
                 peer["IP"] = fileData.trackerIP
 
-            response = sendPacket(peer["IP"], trackerPort, packet)
+            response = sendPacket(peer["IP"], listenPort, packet)
             data = response["data"]
             saveData(peer["chunkID"], data)
             chunkAvail[peer["chunkID"]] = True
@@ -326,9 +325,8 @@ def handlePacket(conn, packet):
 
 def printUsageAndExit():
     print("Usage:")
-    print("Generate metadata: ./p2p init <folder_path> <file> <chunk_size>")
-    print("Host: ./p2p host <metadata_file> <download_folder>")
-    print("Peer: ./p2p peer <metadata_file> <download_folder> <tracker_IP>")
+    print("Host: ./p2p host")
+    print("Peer: ./p2p peer <tracker_IP>")
     exit()
 
 if len(sys.argv) < 2:
@@ -336,14 +334,17 @@ if len(sys.argv) < 2:
 
 command = sys.argv[1]
 
-if command == "init" and len(sys.argv) >= 5:
-    generateMetaData(sys.argv[2], sys.argv[3], int(sys.argv[4]))
-    exit()
-elif command == "host" and len(sys.argv) >= 4:
+
+#if command == "init" and len(sys.argv) >= 5:
+#    generateMetaData(sys.argv[2], sys.argv[3], int(sys.argv[4]))
+#    exit()
+#el
+if command == "host" and len(sys.argv) >= 4:
     initMetadata(sys.argv[2])
     fileData.downloadFolder = sys.argv[3]
     fileData.trackerIP = getPublicIP()
     isHost = True
+
 elif command == "peer" and len(sys.argv) >= 5:
     initMetadata(sys.argv[2])
     fileData.downloadFolder = sys.argv[3]
@@ -359,7 +360,8 @@ print("File name " + fileData.filename)
 
 if not isHost:
     Thread(target=sendThread, args=()).start()
+    Thread(target=listenThread, args=(IP, listenPort)).start()
 else:
     peerInfo["tracker"] = chunkAvail # host inserts itself into peer list
-    listenPort = trackerPort
-Thread(target=listenThread, args=(IP, listenPort)).start()
+    Thread(target=listenThread, args=(IP, listenPort)).start()
+
