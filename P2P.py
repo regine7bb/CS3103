@@ -369,9 +369,6 @@ IP = getPublicIP()
 if not isHost:
     Thread(target=sendThread, args=()).start()
     Thread(target=listenThread, args=(IP, listenPort)).start()
-else:
-    peerInfo["tracker"] = chunkAvail # host inserts itself into peer list
-    Thread(target=listenThread, args=(IP, trackerPort)).start()
 
     while(1):
         printCommands()
@@ -403,3 +400,7 @@ else:
             pass
         else:
             printCommands()
+else:
+    peerInfo["tracker"] = chunkAvail # host inserts itself into peer list
+    Thread(target=listenThread, args=(IP, trackerPort)).start()
+
