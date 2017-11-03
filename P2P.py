@@ -397,7 +397,19 @@ if not isHost:
             print("Downloading...")
             need = fileData[filePath]
         elif cmd[0] == "post":
-            pass
+            filePath = cmd[1]
+            if filePath not in fileData:
+                print("Couldn't find metadata.")
+                continue
+            print("Done")
+            need = fileData[filePath]
+            packet = {
+                "opcode": Opcodes.PEER_UPDATE,
+                "IP": IP,
+                "need": need.filename,
+                "chunkAvail": checkAvail(need)
+            }
+            response = sendPacket(trackerIP, trackerPort, packet)
         else:
             printCommands()
 else:
