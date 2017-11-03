@@ -79,8 +79,10 @@ def chunk(folderPath, filePath, chunkSize):
     if not os.path.exists(folderPath):
         os.mkdir(folderPath)
     os.chdir(folderPath)
+    if not os.path.exists("chunk"):
+        os.mkdir("chunk")
     for data in iter(lambda: in_file.read(chunkSize), ""):    # Create file chunks
-        out_file = open(filePath + "-" + str(i) + ".part", "w")  # a1.txt -> out/a1.txt-0.part out/a1.txt-1.part
+        out_file = open("chunk/" + filePath + "-" + str(i) + ".part", "w")  # a1.txt -> out/a1.txt-0.part out/a1.txt-1.part
         out_file.write(data)
         out_file.close()
         i += 1
@@ -95,7 +97,7 @@ def generateMetaData(folderPath, filePath, chunkSize):
     chunk(folderPath, filePath, chunkSize)
 
     # Write to file matadata
-    out_file = open(filePath + ".metadata", "w")  # open for [w]riting
+    out_file = open(metadataFolder + "/" + filePath + ".metadata", "w")  # open for [w]riting
     out_file.write(filePath + " ")
     out_file.write(str(numChunks) + " ")
     out_file.write(str(chunkSize) + " ")
@@ -180,15 +182,19 @@ def sendPacket(IP, port, packet):
 def sendThread():
     global peerList
     global chunkAvail
-    need = fileData["test.txt"]
+    need = None
     while True:
+        if need is None:
+            time.sleep(1)
+            continue
+
         if len(peerList) == 0:
 
             # Temporary code to stop the program from sending indefinitely
             chunkAvail = checkAvail(need)
             if tryReassemble(need):
                 print("Reassembly successful.")
-                exit()
+                need = None
 
             # 1. PEER: Send Peer Update to Host
             print("Peer list empty, send peer update to tracker")
@@ -236,7 +242,7 @@ def listenThread(IP, port):
     receiveSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     receiveSocket.bind((IP, port))
     receiveSocket.listen(1)
-    print("Listening on " + str(IP) + " " + str(port))
+    # print("Listening on " + str(IP) + " " + str(port))
     while True:
         # receive packet
 
@@ -303,7 +309,6 @@ if len(sys.argv) < 2:
 
 command = sys.argv[1]
 
-
 #if command == "init" and len(sys.argv) >= 5:
 #    generateMetaData(sys.argv[2], sys.argv[3], int(sys.argv[4]))
 #    exit()
@@ -340,3 +345,30 @@ else:
     peerInfo["tracker"] = chunkAvail # host inserts itself into peer list
     Thread(target=listenThread, args=(IP, trackerPort)).start()
 
+def printCommands():
+    print("Commands available: ")
+    print("1. Initialise Chunk size: [init <file> <chunk size>]")
+    print("2. Query the centralised server for list of files available: [files]")
+    print("3. Query centalised server for a specific file: [query <file path>]")
+    print("4. Download a file by specifying the filaname: [download <file path> <folder>]")
+    print("5. Create metadata file: [post <metadata file>]\n")
+
+while(1):
+    printCommands()
+    cmd = input('Enter command: ').split(' ')
+
+    if cmd[0] == "init" and len(cmd) >= 3:
+        filePath = cmd[1]
+        chunkSize = int(cmd[2])
+        generateMetaData(downloadFolder, filePath, chunkSize)
+        pass
+    elif cmd[0] == "files":
+        pass
+    elif cmd[0] == "query":
+        pass
+    elif cmd[0] == "download":
+        pass
+    elif cmd[0] == "post":
+        pass
+    else:
+        commands()
