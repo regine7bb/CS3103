@@ -1,2 +1,2 @@
-python P2P.py host metadata hostfolder
+python3 P2P.py host metadata hostfolder
 pause
