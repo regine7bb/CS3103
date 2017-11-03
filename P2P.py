@@ -46,6 +46,7 @@ IP = "127.0.0.1"
 trackerIP = "127.0.0.1"
 listenPort = 5000
 trackerPort = 5001
+need = None
 
 def getPublicIP():
     return "127.0.0.1"
@@ -97,7 +98,8 @@ def generateMetaData(folderPath, filePath, chunkSize):
     chunk(folderPath, filePath, chunkSize)
 
     # Write to file matadata
-    out_file = open(metadataFolder + "/" + filePath + ".metadata", "w")  # open for [w]riting
+    metadataPath = metadataFolder + "/" + filePath + ".metadata"
+    out_file = open(metadataPath, "w")  # open for [w]riting
     out_file.write(filePath + " ")
     out_file.write(str(numChunks) + " ")
     out_file.write(str(chunkSize) + " ")
@@ -107,6 +109,7 @@ def generateMetaData(folderPath, filePath, chunkSize):
         else:
             out_file.write(getChecksum(getChunkPath(folderPath, filePath, i)))
     out_file.close()
+    return metadataPath
 
 
 def tryReassemble(fd):
@@ -182,19 +185,16 @@ def sendPacket(IP, port, packet):
 def sendThread():
     global peerList
     global chunkAvail
-    need = None
+    global need
     while True:
         if need is None:
             time.sleep(1)
             continue
-
+        print("try")
         if len(peerList) == 0:
 
             # Temporary code to stop the program from sending indefinitely
             chunkAvail = checkAvail(need)
-            if tryReassemble(need):
-                print("Reassembly successful.")
-                need = None
 
             # 1. PEER: Send Peer Update to Host
             print("Peer list empty, send peer update to tracker")
@@ -209,6 +209,10 @@ def sendThread():
                 peerList = response["peers"]
             except:
                 print("Timeout on SEND_PEER_UPDATE")
+
+            if tryReassemble(need):
+                print("Reassembly successful.")
+                need = None
         else:
             print("Send peer request")
             print("Peer list: " + str(peerList))
@@ -274,6 +278,7 @@ def handlePacket(conn, packet):
                         break;
 
         print(peers)
+        print(peerInfo)
         trackerResponse = { "peers" : peers };
         # 5. HOST: Send Tracker response
         packet = pickle.dumps(trackerResponse)
@@ -338,13 +343,6 @@ print("Chunk avail: " + str(chunkAvail))
 IP = getPublicIP()
 
 
-if not isHost:
-    Thread(target=sendThread, args=()).start()
-    Thread(target=listenThread, args=(IP, listenPort)).start()
-else:
-    peerInfo["tracker"] = chunkAvail # host inserts itself into peer list
-    Thread(target=listenThread, args=(IP, trackerPort)).start()
-
 def printCommands():
     print("Commands available: ")
     print("1. Initialise Chunk size: [init <file> <chunk size>]")
@@ -353,22 +351,34 @@ def printCommands():
     print("4. Download a file by specifying the filaname: [download <file path> <folder>]")
     print("5. Create metadata file: [post <metadata file>]\n")
 
-while(1):
-    printCommands()
-    cmd = input('Enter command: ').split(' ')
+if isHost:
+    peerInfo["tracker"] = chunkAvail # host inserts itself into peer list
+    Thread(target=listenThread, args=(IP, trackerPort)).start()
+else:
+    Thread(target=sendThread, args=()).start()
+    Thread(target=listenThread, args=(IP, listenPort)).start()
+    while(1):
+        printCommands()
+        cmd = input('Enter command: ').split(' ')
 
-    if cmd[0] == "init" and len(cmd) >= 3:
-        filePath = cmd[1]
-        chunkSize = int(cmd[2])
-        generateMetaData(downloadFolder, filePath, chunkSize)
-        pass
-    elif cmd[0] == "files":
-        pass
-    elif cmd[0] == "query":
-        pass
-    elif cmd[0] == "download":
-        pass
-    elif cmd[0] == "post":
-        pass
-    else:
-        commands()
+        if cmd[0] == "init" and len(cmd) >= 3:
+            filePath = cmd[1]
+            chunkSize = int(cmd[2])
+            metadataPath = generateMetaData(downloadFolder, filePath, chunkSize)
+            fileData[filePath] = initMetadata(metadataPath)
+            pass
+        elif cmd[0] == "files":
+            pass
+        elif cmd[0] == "query":
+            pass
+        elif cmd[0] == "download" and len(cmd) >= 2:
+            filePath = cmd[1]
+            if filePath not in fileData:
+                print("Couldn't find metadata. Use query command to retrieve it from server.")
+                continue
+            print("Downloading...")
+            need = fileData[filePath]
+        elif cmd[0] == "post":
+            pass
+        else:
+            printCommands()
