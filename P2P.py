@@ -9,7 +9,9 @@ import socket
 import requests
 import re
 import glob
+import _thread
 from threading import Thread
+from socketserver import ThreadingMixIn
 from enum import Enum
 from os import walk
 
@@ -43,6 +45,7 @@ peerList = [
 ]
 chunkAvail = {}
 isHost = False
+threads = []
 
 # IP stuff
 IP = "127.0.0.1"
@@ -51,6 +54,19 @@ listenPort = 5000
 trackerPort = 5001
 need = None
 
+class ClientThread(Thread):
+    def __init__(self, ip, port, conn):
+        Thread.__init__(self)
+        self.ip = ip
+        self.port = port
+        self.conn = conn
+        print("New thread started - " + ip + ":" + str(port))
+
+    def run(self):
+        while True:
+            packet = pickle.loads(self.conn.recv(RECV_BUFFER_SIZE))
+            print("Receive packet: " + str(packet))
+            handlePacket(self.conn, packet)
 
 def getPublicIP():
     #return "127.0.0.1"
@@ -256,21 +272,19 @@ def sendThread():
             saveData(need, peer["chunkID"], data)
             chunkAvail[peer["chunkID"]] = True
 
-
 # Listen Thread
 def listenThread(IP, port):
     receiveSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    receiveSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     receiveSocket.bind((IP, port))
-    receiveSocket.listen(1)
+    receiveSocket.listen(8)
     # print("Listening on " + str(IP) + " " + str(port))
     while True:
         # receive packet
-
-        conn, addr = receiveSocket.accept()
-        packet = pickle.loads(conn.recv(RECV_BUFFER_SIZE))
-        print("Receive packet: " + str(packet))
-        handlePacket(conn, packet)
-
+        (conn, (addr, port)) = receiveSocket.accept()
+        clientThread = ClientThread(addr, port, conn)
+        clientThread.start()
+        threads.append(clientThread)
 
 # Called by listenThread when a packet is received
 def handlePacket(conn, packet):
@@ -355,7 +369,8 @@ def printCommands():
     print("2. Query the centralised server for list of files available: [files]")
     print("3. Query centalised server for a specific file: [query <file path>]")
     print("4. Download a file by specifying the filename: [download <file path> <folder>]")
-    print("5. Create metadata file: [post <metadata file>]\n")
+    print("5. Create metadata file: [post <metadata file>]")
+    print("6. Exit the program: [exit]\n")
 
 if len(sys.argv) < 2:
     printUsageAndExit()
@@ -439,6 +454,9 @@ if not isHost:
                 "chunkAvail": checkAvail(need)
             }
             response = sendPacket(trackerIP, trackerPort, packet)
+        elif cmd[0] == "exit":
+            print("Exiting...")
+            sys.exit()
         else:
             printCommands()
 else:
