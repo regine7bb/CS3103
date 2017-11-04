@@ -20,6 +20,7 @@ class Opcodes(Enum):
     PEER_UPDATE = 0
     REQUEST_CHUNK = 1
     FILE_LIST = 2
+    QUERY_FILE = 3
 
 metadataFolder = ""
 downloadFolder = ""
@@ -158,6 +159,12 @@ def loadChunk(fd, chunkID):
     in_file.close()
     return data
 
+def loadMetadata(filename):
+    filepath = os.getcwd() + "/" + metadataFolder + "/" + filename + ".metadata"
+    in_file = open(filepath, "r")  # opening for [r]eading
+    data = in_file.read()
+    in_file.close()
+    return data
 
 def saveData(fd, chunkID, data):
     print("Saving data to " + getChunkPath(downloadFolder, fd.filename, chunkID))
@@ -168,6 +175,13 @@ def saveData(fd, chunkID, data):
     with open(getChunkPath(downloadFolder, fd.filename, chunkID), 'w') as output:
         output.write(data)
 
+def saveMetadata(filename, data):
+   print("Saving metadata file to folder " + metadataFolder)
+   if not os.path.exists(metadataFolder):
+        os.mkdir(metadataFolder)
+   finalPath = os.getcwd() + "/" + metadataFolder + "/" + filename + ".metadata"
+   with open(finalPath, 'w') as output:
+        output.write(data)
 
 # Sends an arbitrary packet to IP/port and receives a response
 def sendPacket(IP, port, packet):
@@ -302,6 +316,16 @@ def handlePacket(conn, packet):
 
         packet = pickle.dumps(dataResponse)
         conn.send(packet)
+        return
+    elif packet["opcode"] == Opcodes.QUERY_FILE:
+        want = packet["want"]
+        print("Received query for file " + want + " from " + conn.getpeername()[0])
+        dataResponse = {
+            "data": loadMetadata(want)
+        }
+        packet = pickle.dumps(dataResponse)
+        conn.send(packet)
+        return
     elif packet["opcode"] == Opcodes.FILE_LIST:
         dataResponse = {
             "filelist": fileList()
@@ -330,7 +354,7 @@ def printCommands():
     print("1. Initialise Chunk size: [init <file> <chunk size>]")
     print("2. Query the centralised server for list of files available: [files]")
     print("3. Query centalised server for a specific file: [query <file path>]")
-    print("4. Download a file by specifying the filaname: [download <file path> <folder>]")
+    print("4. Download a file by specifying the filename: [download <file path> <folder>]")
     print("5. Create metadata file: [post <metadata file>]\n")
 
 if len(sys.argv) < 2:
@@ -388,7 +412,12 @@ if not isHost:
             for file in response["filelist"]:
                 print(file)
         elif cmd[0] == "query":
-            pass
+            packet = {
+                "opcode": Opcodes.QUERY_FILE,
+                "want": cmd[1]
+            }
+            response = sendPacket(trackerIP, trackerPort, packet)
+            saveMetadata(cmd[1], response["data"])
         elif cmd[0] == "download" and len(cmd) >= 2:
             filePath = cmd[1]
             if filePath not in fileData:
