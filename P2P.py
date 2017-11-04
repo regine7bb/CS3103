@@ -63,13 +63,13 @@ class ClientThread(Thread):
         print("New thread started - " + ip + ":" + str(port))
 
     def run(self):
-        while True:
-            packet = pickle.loads(self.conn.recv(RECV_BUFFER_SIZE))
-            print("Receive packet: " + str(packet))
-            handlePacket(self.conn, packet)
+        packet = pickle.loads(self.conn.recv(RECV_BUFFER_SIZE))
+        print("Receive packet: " + str(packet))
+        handlePacket(self.conn, packet)
+        self.conn.close()
 
 def getPublicIP():
-    #return "127.0.0.1"
+    return "127.0.0.1"
     response = requests.get('http://checkip.dyndns.org/')
     m = re.findall('[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}', str(response.content))
     print(m[0])
@@ -198,6 +198,7 @@ def saveMetadata(filename, data):
    finalPath = os.getcwd() + "/" + metadataFolder + "/" + filename + ".metadata"
    with open(finalPath, 'w') as output:
         output.write(data)
+   return finalPath
 
 # Sends an arbitrary packet to IP/port and receives a response
 def sendPacket(IP, port, packet):
@@ -427,12 +428,14 @@ if not isHost:
             for file in response["filelist"]:
                 print(file)
         elif cmd[0] == "query":
+            filename = cmd[1]
             packet = {
                 "opcode": Opcodes.QUERY_FILE,
-                "want": cmd[1]
+                "want": filename
             }
             response = sendPacket(trackerIP, trackerPort, packet)
-            saveMetadata(cmd[1], response["data"])
+            metadataPath = saveMetadata(filename, response["data"])
+            fileData[filename] = initMetadata(metadataPath)
         elif cmd[0] == "download" and len(cmd) >= 2:
             filePath = cmd[1]
             if filePath not in fileData:
@@ -457,8 +460,6 @@ if not isHost:
         elif cmd[0] == "exit":
             print("Exiting...")
             sys.exit()
-        else:
-            printCommands()
 else:
     peerInfo["tracker"] = chunkAvail # host inserts itself into peer list
     Thread(target=listenThread, args=(IP, trackerPort)).start()
