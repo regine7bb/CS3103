@@ -205,7 +205,7 @@ def saveMetadata(filename, data):
 # Sends an arbitrary packet to IP/port and receives a response
 def sendPacket(IP, port, packet):
     sendSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sendSocket.settimeout(3)
+    sendSocket.settimeout(10)
     print("Sending to " + str(IP) + " " + str(port))
     sendSocket.connect((IP, port))
     sendData = pickle.dumps(packet)
