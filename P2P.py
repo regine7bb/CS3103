@@ -70,7 +70,7 @@ class ClientThread(Thread):
         self.conn.close()
 
 def getPublicIP():
-    #return "127.0.0.1"
+    return "127.0.0.1"
     response = requests.get('http://checkip.dyndns.org/')
     m = re.findall('[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}', str(response.content))
     print(m[0])
@@ -294,7 +294,10 @@ def handlePacket(conn, packet):
         # Handle peer update
         # 2. HOST: Host receives PEER_UPDATE
         # 3. HOST: Update peer info database
-        peerInfo[conn.getpeername()[0]] = packet["chunkAvail"]
+        peerIp = conn.getpeername()[0]
+        if peerIp not in peerInfo:
+            peerInfo[peerIp] = {}
+        peerInfo[peerIp][packet["need"]] = packet["chunkAvail"]
         print("Received peer update request from " + conn.getpeername()[0])
 
         # 4. HOST: Look for chunks for peer
@@ -350,13 +353,17 @@ def handlePacket(conn, packet):
         conn.send(packet)
         return
     elif packet["opcode"] == Opcodes.POST_FILE:
-        peerInfo[conn.getpeername()[0]] = packet["chunkAvail"]
+        peerIp = conn.getpeername()[0]
+        if peerIp not in peerInfo:
+            peerInfo[peerIp] = {}
+        peerInfo[peerIp][packet["filename"]] = packet["chunkAvail"]
         metadataPath = saveMetadata(packet["filename"], packet["metadata"])
         fileData[packet["filename"]] = initMetadata(metadataPath)
         trackerResponse = {}
         # 5. HOST: Send Tracker response
         packet = pickle.dumps(trackerResponse)
         conn.send(packet)
+        print("Done")
         return
 
 
@@ -459,13 +466,12 @@ if not isHost:
                 print("Couldn't find metadata.")
                 continue
             print("Done")
-            need = fileData[filePath]
             packet = {
                 "opcode": Opcodes.POST_FILE,
                 "IP": IP,
-                "filename": need.filename,
-                "chunkAvail": checkAvail(need),
-                "metadata" : loadMetadata(need.filename)
+                "filename": fileData[filePath].filename,
+                "chunkAvail": checkAvail(fileData[filePath]),
+                "metadata" : loadMetadata(fileData[filePath].filename)
             }
             response = sendPacket(trackerIP, trackerPort, packet)
         elif cmd[0] == "exit":
