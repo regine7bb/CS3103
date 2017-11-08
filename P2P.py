@@ -23,6 +23,7 @@ class Opcodes(Enum):
     REQUEST_CHUNK = 1
     FILE_LIST = 2
     QUERY_FILE = 3
+    POST_FILE = 4
 
 metadataFolder = ""
 downloadFolder = ""
@@ -69,7 +70,7 @@ class ClientThread(Thread):
         self.conn.close()
 
 def getPublicIP():
-    return "127.0.0.1"
+    #return "127.0.0.1"
     response = requests.get('http://checkip.dyndns.org/')
     m = re.findall('[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}', str(response.content))
     print(m[0])
@@ -348,6 +349,15 @@ def handlePacket(conn, packet):
         packet = pickle.dumps(dataResponse)
         conn.send(packet)
         return
+    elif packet["opcode"] == Opcodes.POST_FILE:
+        peerInfo[conn.getpeername()[0]] = packet["chunkAvail"]
+        metadataPath = saveMetadata(packet["filename"], packet["metadata"])
+        fileData[packet["filename"]] = initMetadata(metadataPath)
+        trackerResponse = {}
+        # 5. HOST: Send Tracker response
+        packet = pickle.dumps(trackerResponse)
+        conn.send(packet)
+        return
 
 
 def fileList():
@@ -451,10 +461,11 @@ if not isHost:
             print("Done")
             need = fileData[filePath]
             packet = {
-                "opcode": Opcodes.PEER_UPDATE,
+                "opcode": Opcodes.POST_FILE,
                 "IP": IP,
-                "need": need.filename,
-                "chunkAvail": checkAvail(need)
+                "filename": need.filename,
+                "chunkAvail": checkAvail(need),
+                "metadata" : loadMetadata(need.filename)
             }
             response = sendPacket(trackerIP, trackerPort, packet)
         elif cmd[0] == "exit":
