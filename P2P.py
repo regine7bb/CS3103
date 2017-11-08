@@ -385,6 +385,11 @@ def handlePacket(conn, packet):
             peerInfo[peerIp] = {}
         peerInfo[peerIp] = packet["avail"]
         print(peerInfo)
+        trackerResponse = {}
+        # 5. HOST: Send Tracker response
+        packet = pickle.dumps(trackerResponse)
+        conn.send(packet)
+        return
 
 
 def fileList():
