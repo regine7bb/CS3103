@@ -24,6 +24,7 @@ class Opcodes(Enum):
     FILE_LIST = 2
     QUERY_FILE = 3
     POST_FILE = 4
+    UPDATE_AVAIL = 5
 
 metadataFolder = ""
 downloadFolder = ""
@@ -70,7 +71,7 @@ class ClientThread(Thread):
         self.conn.close()
 
 def getPublicIP():
-    return "127.0.0.1"
+    #return "127.0.0.1"
     response = requests.get('http://checkip.dyndns.org/')
     m = re.findall('[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}', str(response.content))
     print(m[0])
@@ -268,11 +269,23 @@ def sendThread():
             if peer["IP"] == "tracker":
                 peer["IP"] = trackerIP
                 port = trackerPort
+            try:
+                response = sendPacket(peer["IP"], port, packet)
+                data = response["data"]
+                saveData(need, peer["chunkID"], data)
+                chunkAvail[peer["chunkID"]] = True
+            except:
+                print(peer["IP"] + " not available")
+                peerList = filter(lambda p: p["IP"] != peer["IP"], peerList)
 
-            response = sendPacket(peer["IP"], port, packet)
-            data = response["data"]
-            saveData(need, peer["chunkID"], data)
-            chunkAvail[peer["chunkID"]] = True
+def sendAvail():
+    print("Attempting to send availability")
+    packet = {
+        "opcode": Opcodes.UPDATE_AVAIL,
+        "avail": chunkAvail
+    }
+    sendPacket(trackerIP, trackerPort, packet)
+    return
 
 # Listen Thread
 def listenThread(IP, port):
@@ -351,6 +364,7 @@ def handlePacket(conn, packet):
         }
         packet = pickle.dumps(dataResponse)
         conn.send(packet)
+        print(peerInfo)
         return
     elif packet["opcode"] == Opcodes.POST_FILE:
         peerIp = conn.getpeername()[0]
@@ -365,6 +379,12 @@ def handlePacket(conn, packet):
         conn.send(packet)
         print("Done")
         return
+    elif packet["opcode"] == Opcodes.UPDATE_AVAIL:
+        peerIp = conn.getpeername()[0]
+        if peerIp not in peerInfo:
+            peerInfo[peerIp] = {}
+        peerInfo[peerIp] = packet["avail"]
+        print(peerInfo)
 
 
 def fileList():
@@ -427,6 +447,7 @@ if not isHost:
     Thread(target=sendThread, args=()).start()
     Thread(target=listenThread, args=(IP, listenPort)).start()
 
+    sendAvail()
     while(1):
         printCommands()
         cmd = input('Enter command: ').split(' ')
