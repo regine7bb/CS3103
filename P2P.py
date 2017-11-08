@@ -205,7 +205,7 @@ def saveMetadata(filename, data):
 # Sends an arbitrary packet to IP/port and receives a response
 def sendPacket(IP, port, packet):
     sendSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sendSocket.settimeout(5000)
+    sendSocket.settimeout(3)
     print("Sending to " + str(IP) + " " + str(port))
     sendSocket.connect((IP, port))
     sendData = pickle.dumps(packet)
@@ -276,7 +276,7 @@ def sendThread():
                 chunkAvail[peer["chunkID"]] = True
             except:
                 print(peer["IP"] + " not available")
-                peerList = filter(lambda p: p["IP"] != peer["IP"], peerList)
+                peerList = list(filter(lambda p: p["IP"] != peer["IP"], peerList))
 
 def sendAvail():
     print("Attempting to send availability")
