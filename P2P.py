@@ -36,7 +36,7 @@ class FileData:  # Stores file metadata
 fileData = {}
 
 peerInfo = {
-    # ip : {file : [chunkAvail]}
+    # (ip-port) : {file : [chunkAvail]}
     # including host itself
 }
 peerList = [
@@ -73,8 +73,9 @@ class ClientThread(Thread):
         self.conn.close()
 
 def getPublicIP():
+    return "192.168.10.101"
     #return "127.0.0.1"
-    response = requests.get('http://varlabs.comp.nus.edu.sg/tools/yourip.php/')
+    response = requests.get('http://checkip.dyndns.org/')
     m = re.findall('[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}', str(response.content))
     print(m[0])
     return m[0]
@@ -306,11 +307,11 @@ def handlePacket(conn, packet):
         # Handle peer update
         # 2. HOST: Host receives PEER_UPDATE
         # 3. HOST: Update peer info database
-        peerIp = conn.getpeername()[0]
+        peerIp = conn.getpeername()
         if peerIp not in peerInfo:
             peerInfo[peerIp] = {}
         peerInfo[peerIp][packet["need"]] = packet["chunkAvail"]
-        print("Received peer update request from " + conn.getpeername()[0])
+        print("Received peer update request from " + conn.getpeername())
 
         # 4. HOST: Look for chunks for peer
         peers = []
@@ -340,7 +341,7 @@ def handlePacket(conn, packet):
         chunkID = packet["chunkID"]
         need = packet["need"]
         ip = packet["IP"]
-        print("Received request for chunk " + str(chunkID) + " from " + conn.getpeername()[0])
+        print("Received request for chunk " + str(chunkID) + " from " + conn.getpeername())
 
         if isHost and ip != "tracker":
             response = sendPacket(ip, ipPortMap[ip], packet)
@@ -361,7 +362,7 @@ def handlePacket(conn, packet):
         return
     elif packet["opcode"] == Opcodes.QUERY_FILE:
         want = packet["want"]
-        print("Received query for file " + want + " from " + conn.getpeername()[0])
+        print("Received query for file " + want + " from " + conn.getpeername())
         dataResponse = {
             "data": loadMetadata(want)
         }
@@ -377,7 +378,7 @@ def handlePacket(conn, packet):
         print(peerInfo)
         return
     elif packet["opcode"] == Opcodes.POST_FILE:
-        peerIp = conn.getpeername()[0]
+        peerIp = conn.getpeername()
         if peerIp not in peerInfo:
             peerInfo[peerIp] = {}
         peerInfo[peerIp][packet["filename"]] = packet["chunkAvail"]
@@ -390,7 +391,7 @@ def handlePacket(conn, packet):
         print("Done")
         return
     elif packet["opcode"] == Opcodes.UPDATE_AVAIL:
-        peerIp = conn.getpeername()[0]
+        peerIp = conn.getpeername()
         if peerIp not in peerInfo:
             peerInfo[peerIp] = {}
         peerInfo[peerIp] = packet["avail"]
