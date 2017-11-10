@@ -275,7 +275,7 @@ def sendThread():
                 saveData(need, peer["chunkID"], data)
                 chunkAvail[peer["chunkID"]] = True
             except:
-                print(peer["IP"] + " not available")
+                print(str(peer["IP"]) + " not available")
                 peerList = list(filter(lambda p: p["IP"] != peer["IP"], peerList))
 
 def sendAvail():
@@ -344,7 +344,7 @@ def handlePacket(conn, packet):
         print("Received request for chunk " + str(chunkID) + " from " + str(conn.getpeername()))
 
         if isHost and ip != "tracker":
-            response = sendPacket(ip, ipPortMap[ip], packet)
+            response = sendPacket(ip[0], ip[1], packet)
 
             dataResponse = {
                 "data": response["data"]
