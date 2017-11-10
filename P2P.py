@@ -56,6 +56,7 @@ trackerIP = "127.0.0.1"
 listenPort = 5000
 trackerPort = 5001
 need = None
+sockets = {}
 
 class ClientThread(Thread):
     def __init__(self, ip, port, conn):
@@ -67,14 +68,14 @@ class ClientThread(Thread):
         print("New thread started - " + ip + ":" + str(port))
 
     def run(self):
-        packet = pickle.loads(self.conn.recv(RECV_BUFFER_SIZE))
-        print("Receive packet: " + str(packet))
-        handlePacket(self.conn, packet)
-        self.conn.close()
+        while True:
+            packet = pickle.loads(self.conn.recv(RECV_BUFFER_SIZE))
+            print("Receive packet: " + str(packet))
+            handlePacket(self.conn, packet)
 
 def getPublicIP():
-    return "192.168.10.101"
-    #return "127.0.0.1"
+    #return "192.168.10.101"
+    return "127.0.0.1"
     response = requests.get('http://checkip.dyndns.org/')
     m = re.findall('[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}', str(response.content))
     print(m[0])
@@ -207,17 +208,12 @@ def saveMetadata(filename, data):
 
 # Sends an arbitrary packet to IP/port and receives a response
 def sendPacket(IP, port, packet):
-    sendSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sendSocket.settimeout(10)
-    print("Sending to " + str(IP) + " " + str(port))
-    sendSocket.connect((IP, port))
+    receiver = (IP, port)
     sendData = pickle.dumps(packet)
-    sendSocket.send(sendData)
-    recvData = pickle.loads(sendSocket.recv(RECV_BUFFER_SIZE))
-    sendSocket.close()
+    sockets[receiver].send(sendData)
+    recvData = pickle.loads(sockets[receiver].recv(RECV_BUFFER_SIZE))
     print("Response: " + str(recvData))
     return recvData
-
 
 # Send Thread
 def sendThread():
@@ -278,17 +274,21 @@ def sendThread():
                 print(str(peer["IP"]) + " not available")
                 peerList = list(filter(lambda p: p["IP"] != peer["IP"], peerList))
 
-def sendAvail():
+def peerListen(IP, port):
+    global sockets
+    hostConn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    hostConn.settimeout(10)
     print("Attempting to send availability")
+    hostConn.connect((IP, port))
+    sockets[(IP, port)] = hostConn
     packet = {
         "opcode": Opcodes.UPDATE_AVAIL,
         "avail": chunkAvail
     }
     sendPacket(trackerIP, trackerPort, packet)
-    return
 
 # Listen Thread
-def listenThread(IP, port):
+def hostListen(IP, port):
     receiveSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     receiveSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     receiveSocket.bind((IP, port))
@@ -303,6 +303,7 @@ def listenThread(IP, port):
 
 # Called by listenThread when a packet is received
 def handlePacket(conn, packet):
+    global sockets
     if isHost and packet["opcode"] == Opcodes.PEER_UPDATE:
         # Handle peer update
         # 2. HOST: Host receives PEER_UPDATE
@@ -400,6 +401,7 @@ def handlePacket(conn, packet):
         # 5. HOST: Send Tracker response
         packet = pickle.dumps(trackerResponse)
         conn.send(packet)
+        sockets[peerIp] = conn
         return
 
 
@@ -461,9 +463,8 @@ IP = getPublicIP()
 
 if not isHost:
     Thread(target=sendThread, args=()).start()
-    Thread(target=listenThread, args=(IP, listenPort)).start()
+    Thread(target=peerListen, args=(IP, trackerPort)).start()
 
-    sendAvail()
     while(1):
         printCommands()
         cmd = input('Enter command: ').split(' ')
@@ -516,5 +517,5 @@ if not isHost:
             sys.exit()
 else:
     peerInfo["tracker"] = chunkAvail # host inserts itself into peer list
-    Thread(target=listenThread, args=(IP, trackerPort)).start()
+    Thread(target=hostListen, args=(IP, trackerPort)).start()
 
