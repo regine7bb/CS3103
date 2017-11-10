@@ -71,6 +71,8 @@ class ClientThread(Thread):
         while True:
             packet = pickle.loads(self.conn.recv(RECV_BUFFER_SIZE))
             print("Receive packet: " + str(packet))
+            if not "persist" in packet:
+                break
             handlePacket(self.conn, packet)
 
 def getPublicIP():
@@ -207,9 +209,18 @@ def saveMetadata(filename, data):
    return finalPath
 
 # Sends an arbitrary packet to IP/port and receives a response
+def sendPacketToSocket(receiver, packet):
+    print("Sending packet to " + str(IP) + " " + str(port))
+    sendData = pickle.dumps(packet)
+    receiver.send(sendData)
+    recvData = pickle.loads(receiver.recv(RECV_BUFFER_SIZE))
+    print("Response: " + str(recvData))
+    receiver.close()
+    return recvData
+
+# Sends an arbitrary packet to IP/port and receives a response
 def sendPacket(IP, port, packet):
     receiver = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    print("Attempting to connect to " + str(IP) + " " + str(port))
     receiver.connect((IP, port))
     print("Sending packet to " + str(IP) + " " + str(port))
     sendData = pickle.dumps(packet)
@@ -286,7 +297,8 @@ def peerListen(IP, port):
     sockets[(IP, port)] = hostConn
     packet = {
         "opcode": Opcodes.UPDATE_AVAIL,
-        "avail": chunkAvail
+        "avail": chunkAvail,
+        "persist" : True
     }
     sendPacket(trackerIP, trackerPort, packet)
     while True:
@@ -352,7 +364,7 @@ def handlePacket(conn, packet):
         print("Received request for chunk " + str(chunkID) + " from " + str(conn.getpeername()))
 
         if isHost and ip != "tracker":
-            response = sendPacket(ip[0], ip[1], packet)
+            response = sendPacketToSocket(sockets[ip], packet)
 
             dataResponse = {
                 "data": response["data"]
@@ -362,7 +374,8 @@ def handlePacket(conn, packet):
             conn.send(packet)
         else:
             dataResponse = {
-                "data": loadChunk(fileData[need], chunkID)
+                "data": loadChunk(fileData[need], chunkID),
+                "persist": True
             }
 
             packet = pickle.dumps(dataResponse)
