@@ -213,25 +213,29 @@ def saveMetadata(filename, data):
    return finalPath
 
 # Sends an arbitrary packet to IP/port and receives a response
-def sendPacketToSocket(receiver, packet):
+def sendPacketToSocket(receiver, packet, response = True):
     print("Sending packet to socket")
     sendData = pickle.dumps(packet)
     receiver.send(sendData)
-    recvData = pickle.loads(receiver.recv(RECV_BUFFER_SIZE))
-    print("Response: " + str(recvData))
-    return recvData
+    if response:
+        recvData = pickle.loads(receiver.recv(RECV_BUFFER_SIZE))
+        print("Response: " + str(recvData))
+        return recvData
+    return None
 
 # Sends an arbitrary packet to IP/port and receives a response
-def sendPacket(IP, port, packet):
+def sendPacket(IP, port, packet, response = True):
     receiver = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     receiver.connect((IP, port))
     print("Sending packet to " + str(IP) + " " + str(port))
     sendData = pickle.dumps(packet)
     receiver.send(sendData)
-    recvData = pickle.loads(receiver.recv(RECV_BUFFER_SIZE))
-    print("Response: " + str(recvData))
-    receiver.close()
-    return recvData
+    if response:
+        recvData = pickle.loads(receiver.recv(RECV_BUFFER_SIZE))
+        print("Response: " + str(recvData))
+        receiver.close()
+        return recvData
+    return None
 
 # Send Thread
 def sendThread():
@@ -240,7 +244,7 @@ def sendThread():
     global need
     global busy
     while True:
-        if not busy or need is None:
+        if busy or need is None:
             time.sleep(1)
             continue
         print("try")
@@ -287,8 +291,8 @@ def sendThread():
             print("Requesting chunk " + str(peer["chunkID"]) + " from " + str(peer["IP"]))
 
             try:
-                sendPacket(trackerIP, trackerPort, packet)
                 busy = True
+                sendPacket(trackerIP, trackerPort, packet, False)
             except:
                 print(str(peer["IP"]) + " not available")
                 peerList = list(filter(lambda p: p["IP"] != peer["IP"], peerList))
@@ -374,11 +378,7 @@ def handlePacket(conn, packet):
         print("Received request for chunk " + str(chunkID) + " from " + str(conn.getpeername()))
 
         if isHost and ip != "tracker":
-            sendPacketToSocket(sockets[ip], packet)
-            dataResponse = {
-            }
-            packet = pickle.dumps(dataResponse)
-            conn.send(packet)
+            sendPacketToSocket(sockets[ip], packet, False)
         else:
             dataResponse = {
                 "opcode": Opcodes.SAVE_CHUNK,
@@ -391,7 +391,7 @@ def handlePacket(conn, packet):
     elif packet["opcode"] == Opcodes.SAVE_CHUNK:
         if isHost:
             sockIp = packet["sockIP"]
-            sendPacketToSocket(sockets[sockIp], packet)
+            sendPacketToSocket(sockets[sockIp], packet, False)
         else:
             data = packet["data"]
             saveData(need, packet["chunkID"], data)
