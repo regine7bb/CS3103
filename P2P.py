@@ -267,7 +267,7 @@ def sendThread():
                 "IP": peer["IP"]
             }
 
-            print("Requesting chunk " + str(peer["chunkID"]) + " from " + peer["IP"])
+            print("Requesting chunk " + str(peer["chunkID"]) + " from " + str(peer["IP"]))
 
             try:
                 response = sendPacket(trackerIP, trackerPort, packet)
