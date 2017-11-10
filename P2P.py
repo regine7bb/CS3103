@@ -21,11 +21,11 @@ RECV_BUFFER_SIZE = 1024  # Const receive buffer size for socket
 class Opcodes(Enum):
     PEER_UPDATE = 0
     REQUEST_CHUNK = 1
-    SAVE_CHUNK = 1
     FILE_LIST = 2
     QUERY_FILE = 3
     POST_FILE = 4
     UPDATE_AVAIL = 5
+    SAVE_CHUNK = 6
 
 metadataFolder = ""
 downloadFolder = ""
@@ -297,13 +297,14 @@ def peerListen(IP, port):
     print("Attempting to connect to " + str(IP) + " " + str(port))
     hostConn.connect((IP, port))
     sockets[(IP, port)] = hostConn
-    hostSockIP = (hostConn.getsockname()[0], hostConn.getsockname()[1])
     packet = {
         "opcode": Opcodes.UPDATE_AVAIL,
         "avail": chunkAvail,
         "persist" : True
     }
-    sendPacketToSocket(hostConn, packet)
+    response = sendPacketToSocket(hostConn, packet)
+    hostSockIP = response["sockIP"]
+    print("My IP: " + str(hostSockIP))
     while True:
         packet = pickle.loads(hostConn.recv(RECV_BUFFER_SIZE))
         print("Receive packet: " + str(packet))
@@ -422,7 +423,9 @@ def handlePacket(conn, packet):
             peerInfo[peerIp] = {}
         peerInfo[peerIp] = packet["avail"]
         print(peerInfo)
-        trackerResponse = {}
+        trackerResponse = {
+            "sockIP" : peerIP
+        }
         # 5. HOST: Send Tracker response
         packet = pickle.dumps(trackerResponse)
         conn.send(packet)
