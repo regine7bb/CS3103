@@ -74,8 +74,8 @@ class ClientThread(Thread):
             handlePacket(self.conn, packet)
 
 def getPublicIP():
-    #return "192.168.10.101"
-    return "127.0.0.1"
+    return "192.168.10.101"
+    #return "127.0.0.1"
     response = requests.get('http://checkip.dyndns.org/')
     m = re.findall('[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}', str(response.content))
     print(m[0])
@@ -278,7 +278,7 @@ def peerListen(IP, port):
     global sockets
     hostConn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     hostConn.settimeout(10)
-    print("Attempting to send availability")
+    print("Attempting to connect to " + str(IP) + " " + str(port))
     hostConn.connect((IP, port))
     sockets[(IP, port)] = hostConn
     packet = {
@@ -293,7 +293,7 @@ def hostListen(IP, port):
     receiveSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     receiveSocket.bind((IP, port))
     receiveSocket.listen(8)
-    # print("Listening on " + str(IP) + " " + str(port))
+    print("Listening on " + str(IP) + " " + str(port))
     while True:
         # receive packet
         (conn, (addr, port)) = receiveSocket.accept()
@@ -463,7 +463,7 @@ IP = getPublicIP()
 
 if not isHost:
     Thread(target=sendThread, args=()).start()
-    Thread(target=peerListen, args=(IP, trackerPort)).start()
+    Thread(target=peerListen, args=(trackerIP, trackerPort)).start()
 
     while(1):
         printCommands()
