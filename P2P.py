@@ -48,6 +48,7 @@ peerList = [
 chunkAvail = {}
 isHost = False
 threads = []
+ipPortMap = {}
 
 # IP stuff
 IP = "127.0.0.1"
@@ -62,6 +63,7 @@ class ClientThread(Thread):
         self.ip = ip
         self.port = port
         self.conn = conn
+        ipPortMap[ip] = str(port)
         print("New thread started - " + ip + ":" + str(port))
 
     def run(self):
@@ -72,7 +74,7 @@ class ClientThread(Thread):
 
 def getPublicIP():
     #return "127.0.0.1"
-    response = requests.get('http://checkip.dyndns.org/')
+    response = requests.get('http://varlabs.comp.nus.edu.sg/tools/yourip.php/')
     m = re.findall('[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}', str(response.content))
     print(m[0])
     return m[0]
@@ -260,17 +262,14 @@ def sendThread():
             packet = {
                 "need": need.filename,
                 "opcode" : Opcodes.REQUEST_CHUNK,
-                "chunkID" : peer["chunkID"]
+                "chunkID" : peer["chunkID"],
+                "IP": peer["IP"]
             }
 
             print("Requesting chunk " + str(peer["chunkID"]) + " from " + peer["IP"])
 
-            port = listenPort
-            if peer["IP"] == "tracker":
-                peer["IP"] = trackerIP
-                port = trackerPort
             try:
-                response = sendPacket(peer["IP"], port, packet)
+                response = sendPacket(trackerIP, trackerPort, packet)
                 data = response["data"]
                 saveData(need, peer["chunkID"], data)
                 chunkAvail[peer["chunkID"]] = True
@@ -340,14 +339,25 @@ def handlePacket(conn, packet):
 
         chunkID = packet["chunkID"]
         need = packet["need"]
+        ip = packet["IP"]
         print("Received request for chunk " + str(chunkID) + " from " + conn.getpeername()[0])
 
-        dataResponse = {
-            "data": loadChunk(fileData[need], chunkID)
-        }
+        if isHost and ip != "tracker":
+            response = sendPacket(ip, ipPortMap[ip], packet)
 
-        packet = pickle.dumps(dataResponse)
-        conn.send(packet)
+            dataResponse = {
+                "data": response["data"]
+            }
+
+            packet = pickle.dumps(dataResponse)
+            conn.send(packet)
+        else:
+            dataResponse = {
+                "data": loadChunk(fileData[need], chunkID)
+            }
+
+            packet = pickle.dumps(dataResponse)
+            conn.send(packet)
         return
     elif packet["opcode"] == Opcodes.QUERY_FILE:
         want = packet["want"]
