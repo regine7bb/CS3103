@@ -21,6 +21,7 @@ RECV_BUFFER_SIZE = 1024  # Const receive buffer size for socket
 class Opcodes(Enum):
     PEER_UPDATE = 0
     REQUEST_CHUNK = 1
+    SAVE_CHUNK = 1
     FILE_LIST = 2
     QUERY_FILE = 3
     POST_FILE = 4
@@ -57,6 +58,7 @@ listenPort = 5000
 trackerPort = 5001
 need = None
 sockets = {}
+hostSockIP = None
 
 class ClientThread(Thread):
     def __init__(self, ip, port, conn):
@@ -247,7 +249,8 @@ def sendThread():
                 "opcode": Opcodes.PEER_UPDATE,
                 "IP": IP,
                 "need": need.filename,
-                "chunkAvail": chunkAvail
+                "chunkAvail": chunkAvail,
+                "sockIP": hostSockIP
             }
             try:
                 response = sendPacket(trackerIP, trackerPort, packet)
@@ -271,26 +274,27 @@ def sendThread():
                 "need": need.filename,
                 "opcode" : Opcodes.REQUEST_CHUNK,
                 "chunkID" : peer["chunkID"],
-                "IP": peer["IP"]
+                "IP": peer["IP"],
+                "sockIP": hostSockIP
             }
 
             print("Requesting chunk " + str(peer["chunkID"]) + " from " + str(peer["IP"]))
 
             try:
-                response = sendPacket(trackerIP, trackerPort, packet)
-                data = response["data"]
-                saveData(need, peer["chunkID"], data)
-                chunkAvail[peer["chunkID"]] = True
+                sendPacket(trackerIP, trackerPort, packet)
+                time.sleep(3)
             except:
                 print(str(peer["IP"]) + " not available")
                 peerList = list(filter(lambda p: p["IP"] != peer["IP"], peerList))
 
 def peerListen(IP, port):
     global sockets
+    global hostSockIP
     hostConn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     print("Attempting to connect to " + str(IP) + " " + str(port))
     hostConn.connect((IP, port))
     sockets[(IP, port)] = hostConn
+    hostSockIP = (hostConn.getsockname()[0], hostConn.getsockname()[1])
     packet = {
         "opcode": Opcodes.UPDATE_AVAIL,
         "avail": chunkAvail,
@@ -323,7 +327,7 @@ def handlePacket(conn, packet):
         # Handle peer update
         # 2. HOST: Host receives PEER_UPDATE
         # 3. HOST: Update peer info database
-        peerIp = conn.getpeername()
+        peerIp = packet["sockIP"]
         if peerIp not in peerInfo:
             peerInfo[peerIp] = {}
         peerInfo[peerIp][packet["need"]] = packet["chunkAvail"]
@@ -357,26 +361,28 @@ def handlePacket(conn, packet):
         chunkID = packet["chunkID"]
         need = packet["need"]
         ip = packet["IP"]
+        sockIp = packet["sockIP"]
         print("Received request for chunk " + str(chunkID) + " from " + str(conn.getpeername()))
 
         if isHost and ip != "tracker":
-            response = sendPacketToSocket(sockets[ip], packet)
-
-            dataResponse = {
-                "data": response["data"]
-            }
-
-            packet = pickle.dumps(dataResponse)
-            conn.send(packet)
+            sendPacketToSocket(sockets[ip], packet)
         else:
             dataResponse = {
+                "opcode": Opcodes.SAVE_CHUNK,
                 "data": loadChunk(fileData[need], chunkID),
-                "persist": True
+                "chunkID": chunkID,
+                "sockIP": sockIp
             }
-
             packet = pickle.dumps(dataResponse)
             conn.send(packet)
-        return
+    elif packet["opcode"] == Opcodes.SAVE_CHUNK:
+        if isHost:
+            sockIp = packet["sockIP"]
+            sendPacketToSocket(sockets[sockIp], packet)
+        else:
+            data = response["data"]
+            saveData(need, peer["chunkID"], data)
+            chunkAvail[peer["chunkID"]] = True
     elif packet["opcode"] == Opcodes.QUERY_FILE:
         want = packet["want"]
         print("Received query for file " + want + " from " + str(conn.getpeername()))
