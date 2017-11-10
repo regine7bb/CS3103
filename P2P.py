@@ -311,7 +311,7 @@ def handlePacket(conn, packet):
         if peerIp not in peerInfo:
             peerInfo[peerIp] = {}
         peerInfo[peerIp][packet["need"]] = packet["chunkAvail"]
-        print("Received peer update request from " + conn.getpeername())
+        print("Received peer update request from " + str(conn.getpeername()))
 
         # 4. HOST: Look for chunks for peer
         peers = []
@@ -341,7 +341,7 @@ def handlePacket(conn, packet):
         chunkID = packet["chunkID"]
         need = packet["need"]
         ip = packet["IP"]
-        print("Received request for chunk " + str(chunkID) + " from " + conn.getpeername())
+        print("Received request for chunk " + str(chunkID) + " from " + str(conn.getpeername()))
 
         if isHost and ip != "tracker":
             response = sendPacket(ip, ipPortMap[ip], packet)
@@ -362,7 +362,7 @@ def handlePacket(conn, packet):
         return
     elif packet["opcode"] == Opcodes.QUERY_FILE:
         want = packet["want"]
-        print("Received query for file " + want + " from " + conn.getpeername())
+        print("Received query for file " + want + " from " + str(conn.getpeername()))
         dataResponse = {
             "data": loadMetadata(want)
         }
