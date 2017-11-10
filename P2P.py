@@ -57,6 +57,7 @@ trackerIP = "127.0.0.1"
 listenPort = 5000
 trackerPort = 5001
 need = None
+busy = False
 sockets = {}
 hostSockIP = None
 
@@ -213,6 +214,7 @@ def saveMetadata(filename, data):
 
 # Sends an arbitrary packet to IP/port and receives a response
 def sendPacketToSocket(receiver, packet):
+    print("Sending packet to socket")
     sendData = pickle.dumps(packet)
     receiver.send(sendData)
     recvData = pickle.loads(receiver.recv(RECV_BUFFER_SIZE))
@@ -236,8 +238,9 @@ def sendThread():
     global peerList
     global chunkAvail
     global need
+    global busy
     while True:
-        if need is None:
+        if not busy or need is None:
             time.sleep(1)
             continue
         print("try")
@@ -285,7 +288,7 @@ def sendThread():
 
             try:
                 sendPacket(trackerIP, trackerPort, packet)
-                time.sleep(3)
+                busy = True
             except:
                 print(str(peer["IP"]) + " not available")
                 peerList = list(filter(lambda p: p["IP"] != peer["IP"], peerList))
@@ -327,6 +330,8 @@ def hostListen(IP, port):
 # Called by listenThread when a packet is received
 def handlePacket(conn, packet):
     global sockets
+    global need
+    global busy
     if isHost and packet["opcode"] == Opcodes.PEER_UPDATE:
         # Handle peer update
         # 2. HOST: Host receives PEER_UPDATE
@@ -370,6 +375,10 @@ def handlePacket(conn, packet):
 
         if isHost and ip != "tracker":
             sendPacketToSocket(sockets[ip], packet)
+            dataResponse = {
+            }
+            packet = pickle.dumps(dataResponse)
+            conn.send(packet)
         else:
             dataResponse = {
                 "opcode": Opcodes.SAVE_CHUNK,
@@ -384,9 +393,10 @@ def handlePacket(conn, packet):
             sockIp = packet["sockIP"]
             sendPacketToSocket(sockets[sockIp], packet)
         else:
-            data = response["data"]
-            saveData(need, peer["chunkID"], data)
-            chunkAvail[peer["chunkID"]] = True
+            data = packet["data"]
+            saveData(need, packet["chunkID"], data)
+            chunkAvail[packet["chunkID"]] = True
+            busy = False
     elif packet["opcode"] == Opcodes.QUERY_FILE:
         want = packet["want"]
         print("Received query for file " + want + " from " + str(conn.getpeername()))
@@ -424,7 +434,7 @@ def handlePacket(conn, packet):
         peerInfo[peerIp] = packet["avail"]
         print(peerInfo)
         trackerResponse = {
-            "sockIP" : peerIP
+            "sockIP" : peerIp
         }
         # 5. HOST: Send Tracker response
         packet = pickle.dumps(trackerResponse)
