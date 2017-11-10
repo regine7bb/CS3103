@@ -296,7 +296,7 @@ def peerListen(IP, port):
         "avail": chunkAvail,
         "persist" : True
     }
-    sendPacket(trackerIP, trackerPort, packet)
+    sendPacketToSocket(hostConn, packet)
     while True:
         packet = pickle.loads(hostConn.recv(RECV_BUFFER_SIZE))
         print("Receive packet: " + str(packet))
