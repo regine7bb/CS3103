@@ -372,7 +372,7 @@ def handlePacket(conn, packet):
         # 9. PEER: Send chunk
 
         chunkID = packet["chunkID"]
-        need = packet["need"]
+        filename = packet["need"]
         ip = packet["IP"]
         sockIp = packet["sockIP"]
         print("Received request for chunk " + str(chunkID) + " from " + str(conn.getpeername()))
@@ -382,7 +382,7 @@ def handlePacket(conn, packet):
         else:
             dataResponse = {
                 "opcode": Opcodes.SAVE_CHUNK,
-                "data": loadChunk(fileData[need], chunkID),
+                "data": loadChunk(fileData[filename], chunkID),
                 "chunkID": chunkID,
                 "sockIP": sockIp
             }
