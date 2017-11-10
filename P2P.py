@@ -208,12 +208,15 @@ def saveMetadata(filename, data):
 
 # Sends an arbitrary packet to IP/port and receives a response
 def sendPacket(IP, port, packet):
+    receiver = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    print("Attempting to connect to " + str(IP) + " " + str(port))
+    receiver.connect((IP, port))
     print("Sending packet to " + str(IP) + " " + str(port))
-    receiver = (IP, port)
     sendData = pickle.dumps(packet)
-    sockets[receiver].send(sendData)
-    recvData = pickle.loads(sockets[receiver].recv(RECV_BUFFER_SIZE))
+    receiver.send(sendData)
+    recvData = pickle.loads(receiver.recv(RECV_BUFFER_SIZE))
     print("Response: " + str(recvData))
+    receiver.close()
     return recvData
 
 # Send Thread
@@ -278,7 +281,6 @@ def sendThread():
 def peerListen(IP, port):
     global sockets
     hostConn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    hostConn.settimeout(10)
     print("Attempting to connect to " + str(IP) + " " + str(port))
     hostConn.connect((IP, port))
     sockets[(IP, port)] = hostConn
