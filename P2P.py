@@ -70,10 +70,13 @@ class ClientThread(Thread):
         print("New thread started - " + ip + ":" + str(port))
 
     def run(self):
-        while True:
-            packet = pickle.loads(self.conn.recv(RECV_BUFFER_SIZE))
-            print("Receive packet: " + str(packet))
-            handlePacket(self.conn, packet)
+        try:
+            while True:
+                packet = pickle.loads(self.conn.recv(RECV_BUFFER_SIZE))
+                print("Receive packet: " + str(packet))
+                handlePacket(self.conn, packet)
+        except:
+            print("Closed")
 
 def getPublicIP():
     return "192.168.10.101"
