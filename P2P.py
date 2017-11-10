@@ -71,8 +71,6 @@ class ClientThread(Thread):
         while True:
             packet = pickle.loads(self.conn.recv(RECV_BUFFER_SIZE))
             print("Receive packet: " + str(packet))
-            if not "persist" in packet:
-                break
             handlePacket(self.conn, packet)
 
 def getPublicIP():
@@ -210,12 +208,10 @@ def saveMetadata(filename, data):
 
 # Sends an arbitrary packet to IP/port and receives a response
 def sendPacketToSocket(receiver, packet):
-    print("Sending packet to " + str(IP) + " " + str(port))
     sendData = pickle.dumps(packet)
     receiver.send(sendData)
     recvData = pickle.loads(receiver.recv(RECV_BUFFER_SIZE))
     print("Response: " + str(recvData))
-    receiver.close()
     return recvData
 
 # Sends an arbitrary packet to IP/port and receives a response
