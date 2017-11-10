@@ -208,6 +208,7 @@ def saveMetadata(filename, data):
 
 # Sends an arbitrary packet to IP/port and receives a response
 def sendPacket(IP, port, packet):
+    print("Sending packet to " + str(IP) + " " + str(port))
     receiver = (IP, port)
     sendData = pickle.dumps(packet)
     sockets[receiver].send(sendData)
@@ -286,6 +287,10 @@ def peerListen(IP, port):
         "avail": chunkAvail
     }
     sendPacket(trackerIP, trackerPort, packet)
+    while True:
+        packet = pickle.loads(hostConn.recv(RECV_BUFFER_SIZE))
+        print("Receive packet: " + str(packet))
+        handlePacket(hostConn, packet)
 
 # Listen Thread
 def hostListen(IP, port):
@@ -402,6 +407,7 @@ def handlePacket(conn, packet):
         packet = pickle.dumps(trackerResponse)
         conn.send(packet)
         sockets[peerIp] = conn
+        print(str(sockets))
         return
 
 
