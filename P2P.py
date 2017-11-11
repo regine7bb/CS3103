@@ -487,7 +487,7 @@ if len(sys.argv) < 2:
 command = sys.argv[1]
 
 
-def initaliseFolders():
+def initialiseFolders():
     metadataFolder = sys.argv[2]
     downloadFolder = sys.argv[3]
     for file in glob.glob(os.getcwd() + "/" + metadataFolder + "/*.metadata"):
@@ -503,12 +503,32 @@ if command == "host" and len(sys.argv) >= 2:
     # downloadFolder = sys.argv[3]
     # trackerIP = getPublicIP()
     isHost = True
-    initaliseFolders()
+    # initialiseFolders()
+
+    metadataFolder = sys.argv[2]
+    downloadFolder = sys.argv[3]
+    for file in glob.glob(os.getcwd() + "/" + metadataFolder + "/*.metadata"):
+        fd = initMetadata(file)
+        fileData[fd.filename] = fd
+
+    for file in fileData:
+        chunkAvail[file] = checkAvail(fileData[file])
+
     print("\nChunk avail: " + str(chunkAvail) + "\n")
 elif command == "peer" and len(sys.argv) >= 5:
-    # fileData.downloadFolder = sys.argv[3]
+    # downloadFolder = sys.argv[3]
     trackerIP = sys.argv[4]
-    initaliseFolders()
+    # initialiseFolders()
+
+    metadataFolder = sys.argv[2]
+    downloadFolder = sys.argv[3]
+    for file in glob.glob(os.getcwd() + "/" + metadataFolder + "/*.metadata"):
+        fd = initMetadata(file)
+        fileData[fd.filename] = fd
+
+    for file in fileData:
+        chunkAvail[file] = checkAvail(fileData[file])
+    
 elif command == "init" and len(sys.argv) >= 6:
     filePath = sys.argv[4]
     metadataFolder = sys.argv[2]
@@ -523,11 +543,11 @@ IP = getPublicIP()
 
 def printCommands():  # Command Menu
     print("\nCommands Menu: ")
-    print("1. Initialise Chunk size: [init <file> <chunk size>]")
+    print("1. Initialise metadata file & chunk file: [init <file> <chunk size>]")
     print("2. Query the centralised server for list of files available: [files]")
     print("3. Query centalised server for a specific file: [query <file path>]")
     print("4. Download a file by specifying the filename: [download <file path> <folder>]")
-    print("5. Create metadata file: [post <metadata file>]")
+    print("5. Send metadata file: [post <metadata file>]")
     print("6. Exit the program: [exit]")
 
 
