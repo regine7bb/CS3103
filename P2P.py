@@ -240,7 +240,6 @@ def sendPacketToSocket(receiver, packet, response = True):
 # Sends an arbitrary packet to IP/port and receives a response
 def sendPacket(IP, port, packet, response = True):
     receiver = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    receiver.settimeout(60)
     receiver.connect((IP, port))
     print("Sending packet to " + str(IP) + " " + str(port))
     sendData = pickle.dumps(packet)
@@ -546,8 +545,8 @@ def printCommands():  # Command Menu
     print("1. Initialise metadata file & chunk file: [init <file> <chunk size>]")
     print("2. Query the centralised server for list of files available: [files]")
     print("3. Query centalised server for a specific file: [query <file path>]")
-    print("4. Download a file by specifying the filename: [download <file path> <folder>]")
-    print("5. Send metadata file: [post <metadata file>]")
+    print("4. Download a file by specifying the filename: [download <file path>]")
+    print("5. Send metadata file: [post <file path>]")
     print("6. Exit the program: [exit]")
 
 
@@ -570,7 +569,7 @@ def readCommands():  # read and process commands
             response = sendPacket(trackerIP, trackerPort, packet)
             for file in response["filelist"]:
                 print(file)
-        elif cmd[0] == "query":
+        elif cmd[0] == "query" and len(cmd) >= 2:
             filename = cmd[1]
             packet = {
                 "opcode": Opcodes.QUERY_FILE,
@@ -586,7 +585,7 @@ def readCommands():  # read and process commands
                 continue
             print("Downloading...")
             need = fileData[filePath]
-        elif cmd[0] == "post":
+        elif cmd[0] == "post" and len(cmd) >= 2:
             filePath = cmd[1]
             if filePath not in fileData:
                 print("Couldn't find metadata.")
