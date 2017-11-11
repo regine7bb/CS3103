@@ -529,11 +529,11 @@ IP = getPublicIP()
 
 def printCommands():  # Command Menu
     print("\nCommands Menu: ")
-    print("1. Initialise metadata file & chunk file: [init <file> <chunk size>]")
+    print("1. Initialise metadata file & chunk file: [init <file name> <chunk size>]")
     print("2. Query the centralised server for list of files available: [files]")
-    print("3. Query centalised server for a specific file: [query <file path>]")
-    print("4. Download a file by specifying the filename: [download <file path>]")
-    print("5. Send metadata file: [post <file path>]")
+    print("3. Query centalised server for a specific file: [query <file name>]")
+    print("4. Download a file by specifying the filename: [download <file name>]")
+    print("5. Send metadata file: [post <file name>]")
     print("6. Exit the program: [exit]")
 
 
