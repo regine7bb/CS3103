@@ -368,10 +368,10 @@ def handlePacket(conn, packet):  # Called by listenThread when a packet is recei
         # 4. HOST: Look for chunks for peer
         peers = []
         peerInfoList = list(peerInfo.items())
-        random.shuffle(peerInfoList) # to ensure that the tracker is not always the first in the list
         need = packet["need"]
         for i in range(0, len(packet["chunkAvail"])):
             if not packet["chunkAvail"][i]:
+                random.shuffle(peerInfoList)  # to ensure that the tracker is not always the first in the list
                 for ip, peerFiles in peerInfoList:
                     if need in peerFiles and peerFiles[need][i]:
                         hasChunk = {"IP": ip, "chunkID": i}
