@@ -87,7 +87,7 @@ class ClientThread(Thread):  # Setup client threat
 
 def getPublicIP():
     #return "192.168.10.101"
-    return "127.0.0.1"
+    #return "127.0.0.1"
     response = requests.get('http://checkip.dyndns.org/')
     m = re.findall('[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}', str(response.content))
     print(m[0])
@@ -136,7 +136,7 @@ def chunk(folderPath, filePath, chunkSize):
     return
 
 
-def generateMetaData(folderPath, filePath, chunkSize):  # Write to file matadata
+def generateMetaData(folderPath, filePath, chunkSize):  # Write to file metadata
     filesize = os.path.getsize(filePath)
     numChunks = int(math.ceil(filesize * 1.0 / chunkSize))
     chunk(folderPath, filePath, chunkSize)
@@ -367,10 +367,12 @@ def handlePacket(conn, packet):  # Called by listenThread when a packet is recei
 
         # 4. HOST: Look for chunks for peer
         peers = []
+        peerInfoList = list(peerInfo.items())
+        random.shuffle(peerInfoList) # to ensure that the tracker is not always the first in the list
         need = packet["need"]
         for i in range(0, len(packet["chunkAvail"])):
             if not packet["chunkAvail"][i]:
-                for ip, peerFiles in peerInfo.items():
+                for ip, peerFiles in peerInfoList:
                     if need in peerFiles and peerFiles[need][i]:
                         hasChunk = {"IP": ip, "chunkID": i}
                         peers.append(hasChunk)
@@ -475,6 +477,7 @@ def printUsageAndExit():
     print("Usage:")
     print("Host: ./p2p host <metadata_folder> <download_folder>")
     print("Peer: ./p2p peer <metadata_folder> <download_folder> <tracker_IP>")
+    print("Generate metadata & chunk: ./p2p init <metadata_folder> <file_folder_path> <file> <chunk_size>")
     exit()
 
 
@@ -502,11 +505,15 @@ if command == "host" and len(sys.argv) >= 2:
     isHost = True
     initaliseFolders()
     print("\nChunk avail: " + str(chunkAvail) + "\n")
-
 elif command == "peer" and len(sys.argv) >= 5:
     # fileData.downloadFolder = sys.argv[3]
     trackerIP = sys.argv[4]
     initaliseFolders()
+elif command == "init" and len(sys.argv) >= 6:
+    filePath = sys.argv[4]
+    metadataFolder = sys.argv[2]
+    metadataPath = generateMetaData(sys.argv[3], filePath, int(sys.argv[5]))
+    exit()
 else:
     printUsageAndExit()
 
