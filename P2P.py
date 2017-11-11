@@ -86,7 +86,6 @@ class ClientThread(Thread):  # Setup client threat
 
 
 def getPublicIP():
-    #return "192.168.10.101"
     #return "127.0.0.1"
     response = requests.get('http://checkip.dyndns.org/')
     m = re.findall('[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}', str(response.content))
@@ -241,6 +240,7 @@ def sendPacketToSocket(receiver, packet, response = True):
 # Sends an arbitrary packet to IP/port and receives a response
 def sendPacket(IP, port, packet, response = True):
     receiver = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    receiver.settimeout(60)
     receiver.connect((IP, port))
     print("Sending packet to " + str(IP) + " " + str(port))
     sendData = pickle.dumps(packet)
