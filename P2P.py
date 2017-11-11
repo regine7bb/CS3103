@@ -487,6 +487,11 @@ command = sys.argv[1]
 
 
 def initialiseFolders():
+    global metadataFolder
+    global downloadFolder
+    global fileData
+    global chunkAvail
+
     metadataFolder = sys.argv[2]
     downloadFolder = sys.argv[3]
     for file in glob.glob(os.getcwd() + "/" + metadataFolder + "/*.metadata"):
@@ -502,31 +507,13 @@ if command == "host" and len(sys.argv) >= 2:
     # downloadFolder = sys.argv[3]
     # trackerIP = getPublicIP()
     isHost = True
-    # initialiseFolders()
-
-    metadataFolder = sys.argv[2]
-    downloadFolder = sys.argv[3]
-    for file in glob.glob(os.getcwd() + "/" + metadataFolder + "/*.metadata"):
-        fd = initMetadata(file)
-        fileData[fd.filename] = fd
-
-    for file in fileData:
-        chunkAvail[file] = checkAvail(fileData[file])
+    initialiseFolders()
 
     print("\nChunk avail: " + str(chunkAvail) + "\n")
 elif command == "peer" and len(sys.argv) >= 5:
     # downloadFolder = sys.argv[3]
     trackerIP = sys.argv[4]
-    # initialiseFolders()
-
-    metadataFolder = sys.argv[2]
-    downloadFolder = sys.argv[3]
-    for file in glob.glob(os.getcwd() + "/" + metadataFolder + "/*.metadata"):
-        fd = initMetadata(file)
-        fileData[fd.filename] = fd
-
-    for file in fileData:
-        chunkAvail[file] = checkAvail(fileData[file])
+    initialiseFolders()
 
 elif command == "init" and len(sys.argv) >= 6:
     filePath = sys.argv[4]
