@@ -375,11 +375,11 @@ def handlePacket(conn, packet):  # Called by listenThread when a packet is recei
                     if need in peerFiles and peerFiles[need][i]:
                         hasChunk = {"IP": ip, "chunkID": i}
                         peers.append(hasChunk)
-                        break;
+                        break
 
         print(peers)
         print(peerInfo)
-        trackerResponse = { "peers" : peers };
+        trackerResponse = { "peers" : peers }
         # 5. HOST: Send Tracker response
         packet = pickle.dumps(trackerResponse)
         conn.send(packet)
