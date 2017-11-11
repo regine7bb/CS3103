@@ -528,7 +528,7 @@ elif command == "peer" and len(sys.argv) >= 5:
 
     for file in fileData:
         chunkAvail[file] = checkAvail(fileData[file])
-    
+
 elif command == "init" and len(sys.argv) >= 6:
     filePath = sys.argv[4]
     metadataFolder = sys.argv[2]
@@ -552,6 +552,7 @@ def printCommands():  # Command Menu
 
 
 def readCommands():  # read and process commands
+    global need
     while (1):
         printCommands()
         cmd = input('\n>Enter Command: ').split(' ')
