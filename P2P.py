@@ -73,13 +73,13 @@ class ClientThread(Thread):  # Setup client threat
         self.port = port
         self.conn = conn
         ipPortMap[ip] = str(port)
-        print("\nNew thread started - " + ip + ":" + str(port))
+        print("\nNew thread started - " + ip + ":" + str(port) + "\n")
 
     def run(self):
         try:
             while True:
                 packet = pickle.loads(self.conn.recv(RECV_BUFFER_SIZE))
-                print("Receive packet: \n" + str(packet))
+                print("Receive packet: \n" + str(packet) + "\n")
                 handlePacket(self.conn, packet)
         except:
             print("Closed\n")
