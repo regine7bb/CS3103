@@ -392,7 +392,7 @@ def handlePacket(conn, packet):  # Called by listenThread when a packet is recei
         filename = packet["need"]
         ip = packet["IP"]
         sockIp = packet["sockIP"]
-        print("\nReceived request for chunk " + str(chunkID) + " from " + str(conn.getpeername()))
+        print("\nReceived request for chunk " + str(chunkID) + " from " + str(conn.getpeername()) + " IP " + str(ip))
 
         if isHost and ip != "tracker":
             sendPacketToSocket(sockets[ip], packet, False)
@@ -404,7 +404,7 @@ def handlePacket(conn, packet):  # Called by listenThread when a packet is recei
                 "sockIP": sockIp
             }
             packet = pickle.dumps(dataResponse)
-            conn.send(packet)
+            sendPacketToSocket(sockets[sockIp], packet, False)
     elif packet["opcode"] == Opcodes.SAVE_CHUNK:  # Handle save chunks
         if isHost:
             sockIp = packet["sockIP"]
