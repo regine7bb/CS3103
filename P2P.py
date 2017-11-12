@@ -81,7 +81,8 @@ class ClientThread(Thread):  # Setup client threat
                 packet = pickle.loads(self.conn.recv(RECV_BUFFER_SIZE))
                 print("Receive packet: \n" + str(packet) + "\n")
                 handlePacket(self.conn, packet)
-        except:
+        except Exception as e:
+            print(e)
             print("Closed\n")
 
 
