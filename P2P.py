@@ -406,8 +406,8 @@ def handlePacket(conn, packet):  # Called by listenThread when a packet is recei
             if isHost:
                 sendPacketToSocket(sockets[sockIp], dataResponse, False)
             else:
-                packet = pickle.dumps(trackerResponse)
-                conn.send(dataResponse)
+                packet = pickle.dumps(dataResponse)
+                conn.send(packet)
     elif packet["opcode"] == Opcodes.SAVE_CHUNK:  # Handle save chunks
         if isHost:
             sockIp = packet["sockIP"]
