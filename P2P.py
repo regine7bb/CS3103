@@ -403,7 +403,10 @@ def handlePacket(conn, packet):  # Called by listenThread when a packet is recei
                 "chunkID": chunkID,
                 "sockIP": sockIp
             }
-            sendPacketToSocket(sockets[sockIp], dataResponse, False)
+			if isHost:
+			    sendPacketToSocket(sockets[sockIp], dataResponse, False)
+			else:
+                conn.send(packet)
     elif packet["opcode"] == Opcodes.SAVE_CHUNK:  # Handle save chunks
         if isHost:
             sockIp = packet["sockIP"]
