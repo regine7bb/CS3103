@@ -435,12 +435,13 @@ def handlePacket(conn, packet):  # Called by listenThread when a packet is recei
         print(peerInfo)
         return
     elif packet["opcode"] == Opcodes.POST_FILE:  # Handle post file to host
-        peerIp = conn.getpeername()
+        peerIp = packet["IP"]
         if peerIp not in peerInfo:
             peerInfo[peerIp] = {}
         peerInfo[peerIp][packet["filename"]] = packet["chunkAvail"]
         metadataPath = saveMetadata(packet["filename"], packet["metadata"])
         fileData[packet["filename"]] = initMetadata(metadataPath)
+        print("File data: " + str(fileData))
         trackerResponse = {}
         # 5. HOST: Send Tracker response
         packet = pickle.dumps(trackerResponse)
@@ -584,7 +585,7 @@ def readCommands():  # read and process commands
             print("Done")
             packet = {
                 "opcode": Opcodes.POST_FILE,
-                "IP": IP,
+                "IP": hostSockIP,
                 "filename": fileData[filePath].filename,
                 "chunkAvail": checkAvail(fileData[filePath]),
                 "metadata": loadMetadata(fileData[filePath].filename)
